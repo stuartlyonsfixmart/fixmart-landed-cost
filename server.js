@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Firebase init first — session store needs it
+// Firebase init
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
@@ -20,17 +20,14 @@ admin.initializeApp({
 const db = admin.firestore();
 db.settings({ databaseId: 'landedcost' });
 
-// Firestore session store — sessions stored in 'sessions' collection
-// Survives Cloud Run scale-to-zero
-const FirestoreStore = require('firestore-store')(session);
-
+// Sessions — in-memory with long TTL (7 days rolling)
+// Cloud Run scale-to-zero will still log out on cold start but this is fine for low-traffic use
 app.use(session({
-  store: new FirestoreStore({ database: db, collection: 'sessions' }),
   secret: process.env.SESSION_SECRET || 'fixmart-landed-cost-2026',
   resave: false,
   saveUninitialized: false,
   rolling: true,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days, resets on every request
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
