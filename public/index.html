@@ -3,264 +3,307 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fixmart – Landed Cost Calculator</title>
+<title>Fixmart GmbH Landed Cost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #1a2c4e; --navy-light: #243a63; --orange: #e8640c; --orange-light: #f07830;
-    --bg: #f4f6f9; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --text-muted: #64748b;
-    --green: #16a34a; --red: #dc2626; --shadow: 0 1px 3px rgba(0,0,0,0.1); --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-  }
+  :root { --lime: #9ACD00; --lime-dark: #7aaa00; --black: #1a1a1a; --white: #fff; --offwhite: #f5f5f3; --border: #e0e0e0; --muted: #666; --surface: #fff; --red: #dc2626; --amber: #d97706; --green: #16a34a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
-  .header { background: var(--navy); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  body { font-family: 'Barlow', sans-serif; background: var(--offwhite); color: var(--black); }
+
+  .header { background: var(--black); padding: 0 28px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--lime); }
   .header-left { display: flex; align-items: center; gap: 16px; }
-  .logo { color: white; font-size: 18px; font-weight: 700; }
-  .logo span { color: var(--orange); }
-  .fx-badge { background: var(--navy-light); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 12px; color: rgba(255,255,255,0.85); font-size: 12px; display: flex; align-items: center; gap: 6px; }
-  .fx-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .logo-img { height: 30px; width: auto; }
+  .header-div { width: 1px; height: 26px; background: rgba(255,255,255,0.15); }
+  .header-title { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; }
   .header-right { display: flex; align-items: center; gap: 12px; }
-  .user-pill { color: rgba(255,255,255,0.75); font-size: 12px; }
-  .btn-logout { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-  .nav { background: var(--navy-light); padding: 0 24px; display: flex; gap: 2px; border-bottom: 2px solid var(--orange); }
-  .nav-tab { padding: 12px 18px; color: rgba(255,255,255,0.65); cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; }
-  .nav-tab:hover { color: white; }
-  .nav-tab.active { color: white; border-bottom-color: var(--orange); }
-  .content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .fx-badge { background: rgba(154,205,0,0.15); border: 1px solid rgba(154,205,0,0.3); color: var(--lime); font-size: 11px; font-family: 'DM Mono', monospace; padding: 3px 10px; border-radius: 3px; display: flex; align-items: center; gap: 6px; }
+  .fx-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .btn-logout { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 12px; cursor: pointer; border-radius: 3px; }
+  .btn-logout:hover { background: rgba(255,255,255,0.15); color: white; }
+
+  .nav { background: #111; padding: 0 28px; display: flex; border-bottom: 1px solid #333; }
+  .nav-link { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.4); text-decoration: none; padding: 10px 16px; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 3px solid transparent; transition: all 0.15s; cursor: pointer; }
+  .nav-link:hover { color: rgba(255,255,255,0.7); }
+  .nav-link.active { color: var(--lime); border-bottom-color: var(--lime); }
+
+  .main { padding: 16px 24px; max-width: 1600px; margin: 0 auto; }
   .page { display: none; }
   .page.active { display: block; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
-  .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .card-title .badge { background: var(--orange); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: var(--navy); color: white; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; white-space: nowrap; }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #f8fafc; }
-  .td-mono { font-family: monospace; font-size: 12px; }
-  .td-right { text-align: right; }
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
-  .form-group input, .form-group select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); background: white; transition: border-color 0.15s; }
-  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 2px rgba(232,100,12,0.1); }
-  .form-group .hint { font-size: 11px; color: var(--text-muted); }
-  .form-group .error-msg { font-size: 11px; color: var(--red); display: none; }
-  .form-group.has-error input, .form-group.has-error select { border-color: var(--red); }
-  .form-group.has-error .error-msg { display: block; }
-  .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
-  .btn-primary { background: var(--orange); color: white; }
-  .btn-primary:hover { background: var(--orange-light); }
-  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--border); }
-  .btn-secondary:hover { background: #f8fafc; }
+
+  /* Section headers */
+  .section-bar { background: var(--black); border-radius: 6px 6px 0 0; padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .section-bar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.07em; }
+  .section-bar-right { display: flex; gap: 10px; align-items: center; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-top: none; background: var(--surface); border-radius: 0 0 6px 6px; margin-bottom: 16px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table thead { background: #f0f0ee; }
+  .data-table thead th { padding: 7px 10px; text-align: left; font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap; border-bottom: 2px solid var(--lime); }
+  .data-table thead th.right { text-align: right; }
+  .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.08s; }
+  .data-table tbody tr:hover { background: #fafaf8; }
+  .data-table td { padding: 8px 10px; vertical-align: middle; }
+  .data-table td.right { text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .data-table td.mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+
+  /* Buttons */
+  .btn { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 12px; border-radius: 3px; border: none; cursor: pointer; transition: all 0.15s; }
+  .btn-lime { background: var(--lime); color: var(--black); }
+  .btn-lime:hover { background: var(--lime-dark); }
+  .btn-ghost { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.2); color: white; }
+  .btn-outline { background: var(--white); border: 1px solid var(--border); color: var(--black); }
+  .btn-outline:hover { background: #f0f0ee; }
   .btn-danger { background: #fee2e2; color: var(--red); border: 1px solid #fecaca; }
   .btn-danger:hover { background: #fecaca; }
-  .btn-sm { padding: 5px 10px; font-size: 12px; }
-  .btn-navy { background: var(--navy); color: white; }
-  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-  .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .search-input { padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 240px; }
-  .search-input:focus { outline: none; border-color: var(--orange); }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .btn-sm { padding: 3px 9px; font-size: 10px; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filter-input { font-family: 'Barlow', sans-serif; font-size: 13px; color: var(--black); background: var(--white); border: 1px solid var(--border); border-radius: 3px; padding: 6px 10px; outline: none; width: 220px; }
+  .filter-input:focus { border-color: var(--lime-dark); }
+  .result-count { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* Totals bar */
+  .totals-bar { background: var(--black); border-radius: 6px; padding: 14px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .total-item .total-label { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 3px; }
+  .total-item .total-val { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; color: white; }
+  .total-item .total-val.lime { color: var(--lime); }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .field input, .field select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 13px; font-family: 'Barlow', sans-serif; color: var(--black); background: var(--white); outline: none; transition: border-color 0.15s; }
+  .field input:focus, .field select:focus { border-color: var(--lime-dark); }
+  .field .hint { font-size: 11px; color: var(--muted); }
+  .field .err { font-size: 11px; color: var(--red); display: none; }
+  .field.has-error input, .field.has-error select { border-color: var(--red); }
+  .field.has-error .err { display: block; }
+  .field.span2 { grid-column: span 2; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
   .modal-overlay.open { display: flex; }
-  .modal { background: white; border-radius: 12px; padding: 24px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); }
-  .modal-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+  .modal { background: white; border-top: 3px solid var(--lime); padding: 24px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .modal-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--black); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); }
   .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
-  .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; }
-  .banner-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-  .banner-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
-  .banner-danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-  .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; }
+
+  /* Banners */
+  .banner { padding: 10px 14px; font-size: 12px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 8px; border-radius: 3px; }
+  .banner-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-left: 3px solid #f59e0b; }
+  .banner-info { background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; border-left: 3px solid #38bdf8; }
+  .banner-danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-left: 3px solid var(--red); }
+
+  /* Confirm */
+  .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; align-items: center; justify-content: center; }
   .confirm-overlay.open { display: flex; }
-  .confirm-box { background: white; border-radius: 10px; padding: 24px; max-width: 420px; width: 90%; box-shadow: var(--shadow-md); }
-  .confirm-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
-  .confirm-msg { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+  .confirm-box { background: white; border-top: 3px solid var(--red); padding: 24px; max-width: 400px; width: 90%; }
+  .confirm-title { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .confirm-msg { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
   .confirm-footer { display: flex; gap: 10px; justify-content: flex-end; }
-  .transfer-totals { background: var(--navy); color: white; border-radius: 8px; padding: 16px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 16px; }
-  .total-item .total-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 2px; }
-  .total-item .total-val { font-size: 17px; font-weight: 700; color: white; }
-  .total-item .total-val.orange { color: var(--orange); }
-  .assumption-row { display: grid; grid-template-columns: 1fr 160px 180px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-  .assumption-row:last-child { border-bottom: none; }
-  .assumption-label { font-weight: 600; font-size: 13px; }
-  .assumption-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .assumption-value { font-size: 15px; font-weight: 700; color: var(--navy); }
-  .pill { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; display: inline-block; }
-  .pill-draft { background: #f1f5f9; color: #475569; }
-  .pill-confirmed { background: #dcfce7; color: var(--green); }
-  .audit-row { font-size: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-muted); }
-  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--navy); }
-  .login-card { background: white; border-radius: 14px; padding: 40px; max-width: 380px; width: 90%; text-align: center; box-shadow: var(--shadow-md); }
-  .login-logo { font-size: 26px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
-  .login-logo span { color: var(--orange); }
-  .login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
-  .btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text); transition: background 0.15s; }
-  .btn-google:hover { background: #f8fafc; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tag-draft { background: #f1f5f9; color: #475569; }
+  .tag-confirmed { background: #dcfce7; color: var(--green); }
+  .tag-origin { background: #f1f5f9; color: #334155; }
+
+  /* Assumption rows */
+  .ass-row { display: grid; grid-template-columns: 1fr 140px 160px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .ass-row:last-child { border-bottom: none; }
+  .ass-label { font-weight: 600; font-size: 13px; }
+  .ass-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ass-val { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--black); }
+  .ass-meta { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+  /* Audit */
+  .audit-row { font-size: 11px; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; height: 120px; font-size: 13px; color: var(--muted); gap: 10px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--lime); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SKU add line dropdown */
+  #skuDropdown { border: 1px solid var(--border); background: white; max-height: 200px; overflow-y: auto; margin-top: 4px; border-radius: 3px; }
+  .sku-drop-item { padding: 8px 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .sku-drop-item:hover { background: #f5f5f3; }
+  .sku-drop-item .vc { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--black); }
+  .sku-drop-item .desc { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<div class="login-wrap" id="loginScreen">
-  <div class="login-card">
-    <div class="login-logo">Fix<span>mart</span></div>
-    <div class="login-sub">GmbH Landed Cost Calculator</div>
-    <button class="btn-google" onclick="window.location='/auth/login'">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Sign in with Google
-    </button>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:16px;">Access restricted to authorised Fixmart accounts</p>
+<div class="header">
+  <div class="header-left">
+    <img class="logo-img" src="data:image/webp;base64,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" alt="Fixmart">
+    <div class="header-div"></div>
+    <div class="header-title">GmbH Landed Cost</div>
+  </div>
+  <div class="header-right">
+    <div class="fx-badge"><div class="fx-dot"></div><span id="fxDisplay">Loading FX...</span></div>
+    <button class="btn-logout" onclick="window.location='/logout'">Sign Out</button>
   </div>
 </div>
 
-<div id="mainApp" style="display:none">
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">Fix<span>mart</span> <span style="color:rgba(255,255,255,0.5);font-weight:400;font-size:14px;margin-left:4px">Landed Cost</span></div>
-      <div class="fx-badge"><div class="fx-dot"></div><span id="fxDisplay">Loading FX...</span></div>
+<div class="nav">
+  <span class="nav-link active" onclick="showTab('transfer')">Transfer Builder</span>
+  <span class="nav-link" onclick="showTab('skus')">SKU Master</span>
+  <span class="nav-link" onclick="showTab('assumptions')">Assumptions</span>
+  <span class="nav-link" onclick="showTab('duty')">Duty Rates</span>
+  <span class="nav-link" onclick="showTab('history')">Transfer History</span>
+</div>
+
+<div class="main">
+
+  <!-- TRANSFER BUILDER -->
+  <div class="page active" id="page-transfer">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="filter-input" id="transferNameInput" placeholder="Transfer name (optional)" style="width:260px">
+      </div>
+      <div class="toolbar-left">
+        <button class="btn btn-outline" onclick="clearTransfer()">Clear</button>
+        <button class="btn btn-lime" onclick="openAddLineModal()">+ Add Line</button>
+      </div>
     </div>
-    <div class="header-right">
-      <div class="user-pill" id="userPill"></div>
-      <button class="btn-logout" onclick="window.location='/auth/logout'">Sign out</button>
+    <div class="section-bar">
+      <div class="section-bar-title">Transfer Lines</div>
+      <div class="section-bar-right">
+        <span class="result-count" id="transferLineCount"></span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Variant Code</th><th>Description</th><th class="right">Qty</th>
+          <th class="right">Weight kg</th><th class="right">Landed £</th><th class="right">Landed €</th>
+          <th class="right">UK Sell £</th><th class="right">EU Sell £</th><th class="right">EU Sell €</th>
+          <th class="right">% Inc vs UK</th><th></th>
+        </tr></thead>
+        <tbody id="transferLines">
+          <tr><td colspan="11" style="text-align:center;padding:32px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:0.05em">No lines added yet — click <strong>+ ADD LINE</strong> to start</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="totals-bar" id="transferTotals" style="display:none">
+      <div class="total-item"><span class="total-label">Total Weight</span><div class="total-val" id="tot-weight">—</div></div>
+      <div class="total-item"><span class="total-label">Landed Cost £</span><div class="total-val" id="tot-landed-gbp">—</div></div>
+      <div class="total-item"><span class="total-label">Landed Cost €</span><div class="total-val" id="tot-landed-eur">—</div></div>
+      <div class="total-item"><span class="total-label">UK Sell Value £</span><div class="total-val" id="tot-uk-sell">—</div></div>
+      <div class="total-item"><span class="total-label">EU Sell Value £</span><div class="total-val" id="tot-eu-sell">—</div></div>
+      <div class="total-item"><span class="total-label">EU Sell Value €</span><div class="total-val lime" id="tot-eu-sell-eur">—</div></div>
+    </div>
+    <div id="transferActions" style="display:none;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="saveTransfer('Draft')">Save as Draft</button>
+      <button class="btn btn-lime" onclick="saveTransfer('Confirmed')">Confirm Transfer</button>
     </div>
   </div>
-  <div class="nav">
-    <div class="nav-tab active" onclick="showTab('transfer')">📦 Transfer Builder</div>
-    <div class="nav-tab" onclick="showTab('skus')">🗂 SKU Master</div>
-    <div class="nav-tab" onclick="showTab('assumptions')">⚙️ Assumptions</div>
-    <div class="nav-tab" onclick="showTab('duty')">📋 Duty Rates</div>
-    <div class="nav-tab" onclick="showTab('history')">🕓 Transfer History</div>
+
+  <!-- SKU MASTER -->
+  <div class="page" id="page-skus">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="filter-input" id="skuSearch" placeholder="Search variant code or description..." oninput="filterSkus()">
+        <span class="result-count" id="skuCount"></span>
+      </div>
+      <div class="toolbar-left">
+        <button class="btn btn-outline" onclick="exportSkus('csv')">↓ CSV</button>
+        <button class="btn btn-outline" onclick="exportSkus('xlsx')">↓ Excel</button>
+        <button class="btn btn-lime" onclick="openSkuModal()">+ Add SKU</button>
+      </div>
+    </div>
+    <div class="section-bar"><div class="section-bar-title">SKU Master</div></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Variant Code</th><th>Description</th><th>HS Code</th><th>Origin</th>
+          <th class="right">Pack Qty</th><th class="right">Weight kg</th>
+          <th class="right">Cost £</th><th class="right">Sourcing Rate</th><th></th>
+        </tr></thead>
+        <tbody id="skuTableBody"><tr><td colspan="9" class="loading"><div class="spinner"></div> Loading...</td></tr></tbody>
+      </table>
+    </div>
   </div>
-  <div class="content">
 
-    <div class="page active" id="page-transfer">
-      <div class="toolbar">
-        <div class="toolbar-left"><div class="card-title" style="margin:0">Transfer Builder</div></div>
-        <div class="toolbar-left">
-          <button class="btn btn-secondary btn-sm" onclick="clearTransfer()">Clear</button>
-          <button class="btn btn-primary btn-sm" onclick="openAddLineModal()">+ Add Line</button>
-        </div>
-      </div>
-      <div style="margin-bottom:14px">
-        <input class="search-input" id="transferNameInput" placeholder="Transfer name (optional)" style="width:280px">
-      </div>
-      <div class="card" style="padding:0">
-        <table>
-          <thead><tr>
-            <th>Variant Code</th><th>Description</th><th class="td-right">Qty</th>
-            <th class="td-right">Weight kg</th><th class="td-right">Landed £</th><th class="td-right">Landed €</th>
-            <th class="td-right">UK Sell £</th><th class="td-right">EU Sell £</th><th class="td-right">EU Sell €</th>
-            <th class="td-right">% Inc vs UK</th><th></th>
-          </tr></thead>
-          <tbody id="transferLines">
-            <tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text-muted)">No lines added yet — click <strong>+ Add Line</strong> to start</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="transfer-totals" id="transferTotals" style="display:none">
-        <div class="total-item"><div class="total-label">Total Weight</div><div class="total-val" id="tot-weight">—</div></div>
-        <div class="total-item"><div class="total-label">Landed Cost (£)</div><div class="total-val" id="tot-landed-gbp">—</div></div>
-        <div class="total-item"><div class="total-label">Landed Cost (€)</div><div class="total-val" id="tot-landed-eur">—</div></div>
-        <div class="total-item"><div class="total-label">UK Sell Value (£)</div><div class="total-val" id="tot-uk-sell">—</div></div>
-        <div class="total-item"><div class="total-label">EU Sell Value (£)</div><div class="total-val" id="tot-eu-sell">—</div></div>
-        <div class="total-item"><div class="total-label">EU Sell Value (€)</div><div class="total-val orange" id="tot-eu-sell-eur">—</div></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap" id="transferActions" style="display:none">
-        <button class="btn btn-navy" onclick="saveTransfer('Draft')">💾 Save as Draft</button>
-        <button class="btn btn-primary" onclick="saveTransfer('Confirmed')">✅ Confirm Transfer</button>
+  <!-- ASSUMPTIONS -->
+  <div class="page" id="page-assumptions">
+    <div class="banner banner-warn">⚠ <div><strong>Protected settings.</strong> Changes here affect all SKU pricing across the entire model. Each change is logged with your username and timestamp.</div></div>
+    <div class="section-bar">
+      <div class="section-bar-title">Model Assumptions</div>
+      <div class="section-bar-right">
+        <button class="btn btn-ghost" onclick="loadAuditLog()">View Change Log</button>
+        <button class="btn btn-lime" onclick="openAssumptionsEdit()">Edit Assumptions</button>
       </div>
     </div>
-
-    <div class="page" id="page-skus">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <input class="search-input" id="skuSearch" placeholder="Search SKUs..." oninput="filterSkus()">
-          <span id="skuCount" style="font-size:12px;color:var(--text-muted)"></span>
-        </div>
-        <div class="toolbar-left">
-          <button class="btn btn-secondary btn-sm" onclick="exportSkus('csv')">↓ CSV</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportSkus('xlsx')">↓ Excel</button>
-          <button class="btn btn-primary btn-sm" onclick="openSkuModal()">+ Add SKU</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Variant Code</th><th>Description</th><th>HS Code</th><th>Origin</th>
-            <th class="td-right">Pack Qty</th><th class="td-right">Weight kg</th>
-            <th class="td-right">Cost £</th><th class="td-right">Sourcing Rate</th><th></th>
-          </tr></thead>
-          <tbody id="skuTableBody"></tbody>
-        </table>
-      </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-top:none;padding:16px 20px;margin-bottom:16px">
+      <div id="assumptionsDisplay"><div class="loading"><div class="spinner"></div> Loading...</div></div>
     </div>
-
-    <div class="page" id="page-assumptions">
-      <div class="banner banner-warning">⚠️ <div><strong>Protected settings.</strong> Changes here affect all SKU pricing. Each change is logged with your name and timestamp.</div></div>
-      <div class="card">
-        <div class="card-title">Model Assumptions <span class="badge">Protected</span></div>
-        <div id="assumptionsDisplay"></div>
-        <div style="margin-top:16px;display:flex;gap:10px">
-          <button class="btn btn-primary btn-sm" onclick="openAssumptionsEdit()">✏️ Edit Assumptions</button>
-          <button class="btn btn-secondary btn-sm" onclick="loadAuditLog()">📋 View Change Log</button>
-        </div>
-      </div>
-      <div class="card" id="auditLogCard" style="display:none">
-        <div class="card-title">Change Log</div>
+    <div id="auditLogCard" style="display:none">
+      <div class="section-bar"><div class="section-bar-title">Change Log</div></div>
+      <div style="background:var(--white);border:1px solid var(--border);border-top:none;padding:16px 20px">
         <div id="auditLogBody"></div>
       </div>
     </div>
+  </div>
 
-    <div class="page" id="page-duty">
-      <div class="banner banner-info">ℹ️ <div>Duty rates are looked up by HS code + country of origin. If no match is found, 0% duty is applied and a warning is shown.</div></div>
-      <div class="toolbar">
-        <div class="toolbar-left"><input class="search-input" id="dutySearch" placeholder="Search duty rates..." oninput="filterDuty()"></div>
-        <button class="btn btn-primary btn-sm" onclick="openDutyModal()">+ Add Rate</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>HS Code</th><th>Country of Origin</th><th class="td-right">TARIC Duty %</th><th>Notes</th><th></th></tr></thead>
-          <tbody id="dutyTableBody"></tbody>
-        </table>
-      </div>
+  <!-- DUTY RATES -->
+  <div class="page" id="page-duty">
+    <div class="banner banner-info">ℹ <div>Duty rates are looked up by HS code + country of origin. If no match is found for a SKU, 0% duty applies and a warning is shown when adding the SKU.</div></div>
+    <div class="toolbar">
+      <div class="toolbar-left"><input class="filter-input" id="dutySearch" placeholder="Search HS code or country..." oninput="filterDuty()"></div>
+      <button class="btn btn-lime" onclick="openDutyModal()">+ Add Rate</button>
     </div>
-
-    <div class="page" id="page-history">
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Ref</th><th>Name</th><th>Status</th><th>Created By</th><th>Date</th>
-            <th class="td-right">Lines</th><th class="td-right">Weight kg</th>
-            <th class="td-right">Landed £</th><th class="td-right">EU Sell €</th><th></th>
-          </tr></thead>
-          <tbody id="historyTableBody"></tbody>
-        </table>
-      </div>
+    <div class="section-bar"><div class="section-bar-title">TARIC Duty Rates</div></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>HS Code</th><th>Country of Origin</th><th class="right">TARIC Duty %</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="dutyTableBody"><tr><td colspan="5" class="loading"><div class="spinner"></div> Loading...</td></tr></tbody>
+      </table>
     </div>
   </div>
+
+  <!-- TRANSFER HISTORY -->
+  <div class="page" id="page-history">
+    <div class="section-bar"><div class="section-bar-title">Transfer History</div></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Ref</th><th>Name</th><th>Status</th><th>Created By</th><th>Date</th>
+          <th class="right">Lines</th><th class="right">Weight kg</th>
+          <th class="right">Landed £</th><th class="right">EU Sell €</th><th></th>
+        </tr></thead>
+        <tbody id="historyTableBody"><tr><td colspan="10" class="loading"><div class="spinner"></div> Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <!-- Add Line Modal -->
 <div class="modal-overlay" id="addLineModal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <div class="modal-title">Add Transfer Line <button class="modal-close" onclick="closeModal('addLineModal')">×</button></div>
-    <div class="form-grid" style="grid-template-columns:1fr">
-      <div class="form-group">
-        <label>SKU Search</label>
-        <input id="skuSearchLine" placeholder="Type variant code or description..." oninput="searchSkusForLine()" autocomplete="off">
-        <div id="skuDropdown" style="border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;display:none;margin-top:4px"></div>
-      </div>
-      <div id="selectedSkuPreview" style="display:none" class="banner banner-info"></div>
-      <div class="form-group">
-        <label>Quantity (packs)</label>
-        <input type="number" id="lineQty" min="1" value="1">
-        <div class="hint">Number of packs as per pack qty on SKU</div>
-      </div>
+    <div class="field" style="margin-bottom:14px">
+      <label>SKU Search</label>
+      <input id="skuSearchLine" placeholder="Type variant code or description..." oninput="searchSkusForLine()" autocomplete="off">
+      <div id="skuDropdown" style="display:none"></div>
+    </div>
+    <div id="selectedSkuPreview" class="banner banner-info" style="display:none"></div>
+    <div class="field">
+      <label>Quantity (packs)</label>
+      <input type="number" id="lineQty" min="1" value="1">
+      <div class="hint">Number of packs as per pack qty on SKU</div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addLineModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="addTransferLine()">Add Line</button>
+      <button class="btn btn-outline" onclick="closeModal('addLineModal')">Cancel</button>
+      <button class="btn btn-lime" onclick="addTransferLine()">Add Line</button>
     </div>
   </div>
 </div>
@@ -270,107 +313,62 @@
   <div class="modal">
     <div class="modal-title" id="skuModalTitle">Add SKU <button class="modal-close" onclick="closeModal('skuModal')">×</button></div>
     <div class="form-grid">
-      <div class="form-group" id="fg-variantCode">
-        <label>Variant Code *</label>
-        <input id="sku-variantCode" placeholder="e.g. 401413952">
-        <div class="error-msg">Required</div>
+      <div class="field" id="fg-variantCode"><label>Variant Code *</label><input id="sku-variantCode" placeholder="e.g. 401413952"><div class="err">Required</div></div>
+      <div class="field span2" id="fg-description"><label>Description *</label><input id="sku-description" placeholder="e.g. HDG H.T. Hex Bolts M20 X 80"><div class="err">Required</div></div>
+      <div class="field" id="fg-hsCode"><label>HS Code</label><input id="sku-hsCode" placeholder="e.g. 7318158290"><div class="hint">Leave blank if unknown — duty will be 0%</div></div>
+      <div class="field" id="fg-countryOfOrigin"><label>Country of Origin *</label>
+        <select id="sku-countryOfOrigin"><option value="">Select...</option><option>CHINA</option><option>INDIA</option><option>UK MANUFACTURED</option><option>UK SUPPLIER</option><option>CZECH REPUBLIC</option><option>GERMANY</option><option>OTHER EU</option><option>OTHER</option></select>
+        <div class="err">Required</div>
       </div>
-      <div class="form-group" id="fg-description" style="grid-column:span 2">
-        <label>Description *</label>
-        <input id="sku-description" placeholder="e.g. HDG H.T. Hex Bolts M20 X 80">
-        <div class="error-msg">Required</div>
-      </div>
-      <div class="form-group" id="fg-hsCode">
-        <label>HS Code</label>
-        <input id="sku-hsCode" placeholder="e.g. 7318158290">
-        <div class="hint">Leave blank if unknown — duty will be 0%</div>
-      </div>
-      <div class="form-group" id="fg-countryOfOrigin">
-        <label>Country of Origin *</label>
-        <select id="sku-countryOfOrigin">
-          <option value="">Select...</option>
-          <option>CHINA</option><option>INDIA</option><option>UK MANUFACTURED</option>
-          <option>UK SUPPLIER</option><option>CZECH REPUBLIC</option><option>GERMANY</option>
-          <option>OTHER EU</option><option>OTHER</option>
-        </select>
-        <div class="error-msg">Required</div>
-      </div>
-      <div class="form-group" id="fg-packQty">
-        <label>Pack Qty</label>
-        <input type="number" id="sku-packQty" value="1" min="1">
-      </div>
-      <div class="form-group" id="fg-weightKg">
-        <label>Weight kg (per pack) *</label>
-        <input type="number" id="sku-weightKg" placeholder="e.g. 22.5" step="0.001" min="0.001">
-        <div class="error-msg">Required and must be > 0</div>
-      </div>
-      <div class="form-group" id="fg-costGbp">
-        <label>Cost GBP (per pack) *</label>
-        <input type="number" id="sku-costGbp" placeholder="e.g. 33.93" step="0.01" min="0.01">
-        <div class="error-msg">Required and must be > 0</div>
-      </div>
-      <div class="form-group" id="fg-sourcingRate">
-        <label>Sourcing Rate</label>
-        <input type="number" id="sku-sourcingRate" value="1" step="0.01" min="1">
-        <div class="hint">1.0 = no change, 1.2 = 20% uplift for alt supplier</div>
-      </div>
-      <div class="form-group">
-        <label>UK Margin Override</label>
-        <input type="number" id="sku-ukMarginOverride" placeholder="Leave blank for default" step="0.01" min="0" max="1">
-        <div class="hint">e.g. 0.40 for 40%</div>
-      </div>
-      <div class="form-group">
-        <label>EU Margin Override</label>
-        <input type="number" id="sku-euMarginOverride" placeholder="Leave blank for default" step="0.01" min="0" max="1">
-        <div class="hint">e.g. 0.35 for 35%</div>
-      </div>
+      <div class="field" id="fg-packQty"><label>Pack Qty</label><input type="number" id="sku-packQty" value="1" min="1"></div>
+      <div class="field" id="fg-weightKg"><label>Weight kg (per pack) *</label><input type="number" id="sku-weightKg" placeholder="e.g. 22.5" step="0.001" min="0.001"><div class="err">Required and must be &gt; 0</div></div>
+      <div class="field" id="fg-costGbp"><label>Cost GBP (per pack) *</label><input type="number" id="sku-costGbp" placeholder="e.g. 33.93" step="0.01" min="0.01"><div class="err">Required and must be &gt; 0</div></div>
+      <div class="field" id="fg-sourcingRate"><label>Sourcing Rate</label><input type="number" id="sku-sourcingRate" value="1" step="0.01" min="1"><div class="hint">1.0 = no change, 1.2 = 20% uplift for alt supplier</div></div>
+      <div class="field"><label>UK Margin Override</label><input type="number" id="sku-ukMarginOverride" placeholder="Leave blank for default" step="0.01" min="0" max="1"><div class="hint">e.g. 0.40 for 40%</div></div>
+      <div class="field"><label>EU Margin Override</label><input type="number" id="sku-euMarginOverride" placeholder="Leave blank for default" step="0.01" min="0" max="1"><div class="hint">e.g. 0.35 for 35%</div></div>
     </div>
-    <div id="skuWarningBanner" class="banner banner-warning" style="display:none;margin-top:14px"></div>
+    <div id="skuWarningBanner" class="banner banner-warn" style="display:none;margin-top:14px"></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('skuModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSku()">Save SKU</button>
+      <button class="btn btn-outline" onclick="closeModal('skuModal')">Cancel</button>
+      <button class="btn btn-lime" onclick="saveSku()">Save SKU</button>
     </div>
   </div>
 </div>
 
 <!-- Assumptions Modal -->
 <div class="modal-overlay" id="assumptionsModal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <div class="modal-title">Edit Assumptions <button class="modal-close" onclick="closeModal('assumptionsModal')">×</button></div>
-    <div class="banner banner-danger">🔒 <div>These values affect all SKU pricing. A confirmation is required before saving.</div></div>
+    <div class="banner banner-danger">⚠ These values affect all SKU pricing. A confirmation is required before saving. Changes are logged.</div>
     <div class="form-grid">
-      <div class="form-group"><label>Transport Rate (£/kg)</label><input type="number" id="ass-transport" step="0.01" min="0"></div>
-      <div class="form-group"><label>CBAM Rate (€/tonne CO₂)</label><input type="number" id="ass-cbam" step="0.1" min="0"></div>
-      <div class="form-group"><label>CBAM Emissions Factor (tCO₂/tonne)</label><input type="number" id="ass-emissions" step="1" min="0"></div>
-      <div class="form-group"><label>Default Gross Margin</label><input type="number" id="ass-margin" step="0.01" min="0" max="1"><div class="hint">e.g. 0.35 for 35%</div></div>
-      <div class="form-group"><label>Sourcing Markup – China lines</label><input type="number" id="ass-sourcing" step="0.01" min="1"><div class="hint">1.2 = 20% uplift</div></div>
+      <div class="field"><label>Transport Rate (£/kg)</label><input type="number" id="ass-transport" step="0.01" min="0"></div>
+      <div class="field"><label>CBAM Rate (€/tonne CO₂)</label><input type="number" id="ass-cbam" step="0.1" min="0"></div>
+      <div class="field"><label>CBAM Emissions Factor (tCO₂/tonne)</label><input type="number" id="ass-emissions" step="1" min="0"></div>
+      <div class="field"><label>Default Gross Margin</label><input type="number" id="ass-margin" step="0.01" min="0" max="1"><div class="hint">e.g. 0.35 for 35%</div></div>
+      <div class="field"><label>Sourcing Markup – China</label><input type="number" id="ass-sourcing" step="0.01" min="1"><div class="hint">1.2 = 20% uplift</div></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('assumptionsModal')">Cancel</button>
-      <button class="btn btn-danger" onclick="confirmSaveAssumptions()">⚠️ Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal('assumptionsModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmSaveAssumptions()">⚠ Save Changes</button>
     </div>
   </div>
 </div>
 
-<!-- Duty Rate Modal -->
+<!-- Duty Modal -->
 <div class="modal-overlay" id="dutyModal">
   <div class="modal" style="max-width:480px">
     <div class="modal-title">Add Duty Rate <button class="modal-close" onclick="closeModal('dutyModal')">×</button></div>
     <div class="form-grid">
-      <div class="form-group"><label>HS Code *</label><input id="duty-hsCode" placeholder="e.g. 7318158290"></div>
-      <div class="form-group"><label>Country of Origin *</label>
-        <select id="duty-country">
-          <option value="">Select...</option><option>CHINA</option><option>INDIA</option>
-          <option>UK MANUFACTURED</option><option>UK SUPPLIER</option><option>CZECH REPUBLIC</option>
-          <option>GERMANY</option><option>OTHER EU</option><option>OTHER</option>
-        </select>
+      <div class="field"><label>HS Code *</label><input id="duty-hsCode" placeholder="e.g. 7318158290"></div>
+      <div class="field"><label>Country of Origin *</label>
+        <select id="duty-country"><option value="">Select...</option><option>CHINA</option><option>INDIA</option><option>UK MANUFACTURED</option><option>UK SUPPLIER</option><option>CZECH REPUBLIC</option><option>GERMANY</option><option>OTHER EU</option><option>OTHER</option></select>
       </div>
-      <div class="form-group"><label>TARIC Duty Rate</label><input type="number" id="duty-rate" step="0.001" min="0" max="1" placeholder="e.g. 0.037 for 3.7%"></div>
-      <div class="form-group" style="grid-column:span 2"><label>Notes</label><input id="duty-notes" placeholder="Optional"></div>
+      <div class="field"><label>TARIC Duty Rate</label><input type="number" id="duty-rate" step="0.001" min="0" max="1" placeholder="e.g. 0.037 for 3.7%"></div>
+      <div class="field span2"><label>Notes</label><input id="duty-notes" placeholder="Optional"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('dutyModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDutyRate()">Save</button>
+      <button class="btn btn-outline" onclick="closeModal('dutyModal')">Cancel</button>
+      <button class="btn btn-lime" onclick="saveDutyRate()">Save</button>
     </div>
   </div>
 </div>
@@ -381,7 +379,7 @@
     <div class="confirm-title" id="confirmTitle"></div>
     <div class="confirm-msg" id="confirmMsg"></div>
     <div class="confirm-footer">
-      <button class="btn btn-secondary" onclick="closeConfirm(false)">Cancel</button>
+      <button class="btn btn-outline" onclick="closeConfirm(false)">Cancel</button>
       <button class="btn btn-danger" onclick="closeConfirm(true)">Confirm</button>
     </div>
   </div>
@@ -397,27 +395,18 @@
 </div>
 
 <script>
-let state = { user:null, fx:{rate:1.17,source:'cached'}, skus:[], dutyRates:[], assumptions:{}, transferLines:[], editingSkuId:null, confirmCallback:null, selectedSkuForLine:null };
+let state = { skus:[], dutyRates:[], assumptions:{}, transferLines:[], editingSkuId:null, confirmCallback:null, selectedSkuForLine:null };
 
 async function init() {
-  try {
-    const me = await api('/api/me');
-    state.user = me;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    document.getElementById('userPill').textContent = me.name || me.email;
-    await Promise.all([loadFx(), loadSkus(), loadAssumptions(), loadDutyRates()]);
-    loadHistory();
-  } catch(e) {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('mainApp').style.display = 'none';
-  }
+  await Promise.all([loadFx(), loadSkus(), loadAssumptions(), loadDutyRates()]);
+  loadHistory();
 }
 
 async function api(url, method='GET', body=null) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(url, opts);
+  if (r.status === 401) { window.location = '/login.html'; throw new Error('Unauthorised'); }
   if (!r.ok) throw await r.json();
   return r.json();
 }
@@ -425,14 +414,13 @@ async function api(url, method='GET', body=null) {
 async function loadFx() {
   try {
     const fx = await api('/api/fx');
-    state.fx = fx;
     const t = fx.timestamp ? new Date(fx.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
     document.getElementById('fxDisplay').textContent = `GBP/EUR ${fx.rate.toFixed(4)} · ${fx.source==='live'?'Live '+t:'Cached'}`;
   } catch(e) { document.getElementById('fxDisplay').textContent = 'FX unavailable'; }
 }
 
 function showTab(name) {
-  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active',['transfer','skus','assumptions','duty','history'][i]===name));
+  document.querySelectorAll('.nav-link').forEach((t,i) => t.classList.toggle('active',['transfer','skus','assumptions','duty','history'][i]===name));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if (name==='history') loadHistory();
@@ -443,15 +431,15 @@ async function loadSkus() { state.skus = await api('/api/skus'); renderSkuTable(
 function renderSkuTable(skus) {
   document.getElementById('skuCount').textContent = `${skus.length} SKU${skus.length!==1?'s':''}`;
   const body = document.getElementById('skuTableBody');
-  if (!skus.length) { body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">No SKUs yet</td></tr>'; return; }
+  if (!skus.length) { body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No SKUs yet — click + Add SKU</td></tr>'; return; }
   body.innerHTML = skus.map(s=>`<tr>
-    <td class="td-mono">${s.variantCode}</td><td>${s.description}</td>
-    <td class="td-mono">${s.hsCode||'—'}</td>
-    <td><span class="pill pill-draft">${s.countryOfOrigin}</span></td>
-    <td class="td-right">${s.packQty}</td><td class="td-right">${s.weightKg}</td>
-    <td class="td-right">£${s.costGbp.toFixed(2)}</td><td class="td-right">${s.sourcingRate}×</td>
+    <td class="mono">${s.variantCode}</td><td>${s.description}</td>
+    <td class="mono">${s.hsCode||'—'}</td>
+    <td><span class="tag tag-origin">${s.countryOfOrigin}</span></td>
+    <td class="right">${s.packQty}</td><td class="right">${s.weightKg}</td>
+    <td class="right">£${s.costGbp.toFixed(2)}</td><td class="right">${s.sourcingRate}×</td>
     <td style="white-space:nowrap">
-      <button class="btn btn-secondary btn-sm" onclick="openSkuModal('${s.id}')">Edit</button>
+      <button class="btn btn-outline btn-sm" onclick="openSkuModal('${s.id}')">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="deleteSku('${s.id}','${esc(s.description)}')">Delete</button>
     </td></tr>`).join('');
 }
@@ -472,7 +460,7 @@ function openSkuModal(id=null) {
     if(s) ['variantCode','description','hsCode','countryOfOrigin','packQty','weightKg','costGbp','sourcingRate','ukMarginOverride','euMarginOverride'].forEach(f=>{const el=document.getElementById('sku-'+f);if(el&&s[f]!=null)el.value=s[f];});
     document.getElementById('sku-variantCode').disabled=true;
   } else { document.getElementById('sku-variantCode').disabled=false; }
-  clearFormErrors('skuModal'); openModal('skuModal');
+  clearErrors(); openModal('skuModal');
 }
 
 async function saveSku() {
@@ -485,10 +473,10 @@ async function saveSku() {
   if(!valid) return;
   const payload={variantCode:document.getElementById('sku-variantCode').value.trim(),description:document.getElementById('sku-description').value.trim(),hsCode:document.getElementById('sku-hsCode').value.trim(),countryOfOrigin:document.getElementById('sku-countryOfOrigin').value,packQty:document.getElementById('sku-packQty').value,weightKg:document.getElementById('sku-weightKg').value,costGbp:document.getElementById('sku-costGbp').value,sourcingRate:document.getElementById('sku-sourcingRate').value||1,ukMarginOverride:document.getElementById('sku-ukMarginOverride').value||null,euMarginOverride:document.getElementById('sku-euMarginOverride').value||null};
   try {
-    let result = state.editingSkuId ? await api('/api/skus/'+state.editingSkuId,'PUT',payload) : await api('/api/skus','POST',payload);
-    if(result.warning){const wb=document.getElementById('skuWarningBanner');wb.textContent='⚠️ '+result.warning;wb.style.display='flex';}
+    const result = state.editingSkuId ? await api('/api/skus/'+state.editingSkuId,'PUT',payload) : await api('/api/skus','POST',payload);
+    if(result.warning){const b=document.getElementById('skuWarningBanner');b.textContent='⚠ '+result.warning;b.style.display='flex';}
     closeModal('skuModal'); await loadSkus();
-  } catch(e) { if(e.error&&e.error.includes('already exists')){document.getElementById('fg-variantCode').classList.add('has-error');document.querySelector('#fg-variantCode .error-msg').textContent='This variant code already exists';} }
+  } catch(e) { if(e.error&&e.error.includes('already exists')){const fg=document.getElementById('fg-variantCode');fg.classList.add('has-error');fg.querySelector('.err').textContent='This variant code already exists';} }
 }
 
 async function deleteSku(id,name) {
@@ -506,7 +494,7 @@ function renderAssumptions(){
     ['CBAM Emissions Factor',`${a.cbamEmissionsFactorTco2PerTonne} tCO₂/tonne`,'Default emissions factor per HS code'],
     ['Default Gross Margin',`${(a.defaultGrossMargin*100).toFixed(1)}%`,'Target gross margin for sell price calculation'],
     ['Sourcing Markup – China',`${a.sourcingMarkupChina}×`,'Default multiplier for China-origin lines via alt supplier'],
-  ].map(([label,val,desc])=>`<div class="assumption-row"><div><div class="assumption-label">${label}</div><div class="assumption-desc">${desc}</div></div><div class="assumption-value">${val}</div><div style="font-size:11px;color:var(--text-muted)">🔒 ${a.updatedBy?a.updatedBy+'<br>'+fmtDate(a.updatedAt):'System default'}</div></div>`).join('');
+  ].map(([label,val,desc])=>`<div class="ass-row"><div><div class="ass-label">${label}</div><div class="ass-desc">${desc}</div></div><div class="ass-val">${val}</div><div class="ass-meta">🔒 ${a.updatedBy?a.updatedBy+'<br>'+fmtDate(a.updatedAt):'System default'}</div></div>`).join('');
 }
 function openAssumptionsEdit(){
   const a=state.assumptions;
@@ -522,14 +510,14 @@ async function confirmSaveAssumptions(){
 async function loadAuditLog(){
   const log=await api('/api/assumptions/log');
   document.getElementById('auditLogCard').style.display='block';
-  document.getElementById('auditLogBody').innerHTML=log.length?log.map(l=>`<div class="audit-row"><strong>${l.updatedBy||'system'}</strong> · ${fmtDate(l.loggedAt)} — Transport: £${l.transportRatePerKg}/kg · CBAM: €${l.cbamRateEurPerTonneCo2} · Margin: ${(l.defaultGrossMargin*100).toFixed(1)}%</div>`).join(''):'<div style="color:var(--text-muted);font-size:13px">No changes logged yet.</div>';
+  document.getElementById('auditLogBody').innerHTML=log.length?log.map(l=>`<div class="audit-row">${l.updatedBy||'system'} · ${fmtDate(l.loggedAt)} — Transport: £${l.transportRatePerKg}/kg · CBAM: €${l.cbamRateEurPerTonneCo2} · Margin: ${(l.defaultGrossMargin*100).toFixed(1)}%</div>`).join(''):'<div style="color:var(--muted);font-size:13px">No changes logged yet.</div>';
 }
 
 async function loadDutyRates(){state.dutyRates=await api('/api/duty-rates');renderDutyTable(state.dutyRates);}
 function renderDutyTable(rates){
   const body=document.getElementById('dutyTableBody');
-  if(!rates.length){body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">No duty rates yet</td></tr>';return;}
-  body.innerHTML=rates.map(r=>`<tr><td class="td-mono">${r.hsCode}</td><td><span class="pill pill-draft">${r.countryOfOrigin}</span></td><td class="td-right">${(r.taricDutyRate*100).toFixed(2)}%</td><td style="color:var(--text-muted);font-size:12px">${r.notes||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDutyRate('${r.id}','${r.hsCode}/${r.countryOfOrigin}')">Delete</button></td></tr>`).join('');
+  if(!rates.length){body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No duty rates yet</td></tr>';return;}
+  body.innerHTML=rates.map(r=>`<tr><td class="mono">${r.hsCode}</td><td><span class="tag tag-origin">${r.countryOfOrigin}</span></td><td class="right">${(r.taricDutyRate*100).toFixed(2)}%</td><td style="color:var(--muted);font-size:11px">${r.notes||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDutyRate('${r.id}','${r.hsCode}/${r.countryOfOrigin}')">Delete</button></td></tr>`).join('');
 }
 function filterDuty(){const q=document.getElementById('dutySearch').value.toLowerCase();renderDutyTable(state.dutyRates.filter(r=>r.hsCode.includes(q)||r.countryOfOrigin.toLowerCase().includes(q)));}
 function openDutyModal(){['hsCode','country','rate','notes'].forEach(f=>{const el=document.getElementById('duty-'+f);if(el)el.value='';});openModal('dutyModal');}
@@ -552,7 +540,7 @@ function searchSkusForLine(){
   const matches=state.skus.filter(s=>s.variantCode.toLowerCase().includes(q)||s.description.toLowerCase().includes(q)).slice(0,10);
   if(!matches.length){dd.style.display='none';return;}
   dd.style.display='block';
-  dd.innerHTML=matches.map(s=>`<div onclick="selectSkuForLine('${s.id}')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''"><strong>${s.variantCode}</strong> · ${s.description}<span style="color:var(--text-muted);font-size:11px;margin-left:6px">${s.countryOfOrigin} · ${s.weightKg}kg · £${s.costGbp}</span></div>`).join('');
+  dd.innerHTML=matches.map(s=>`<div class="sku-drop-item" onclick="selectSkuForLine('${s.id}')"><div class="vc">${s.variantCode}</div><div class="desc">${s.description} · ${s.countryOfOrigin} · ${s.weightKg}kg · £${s.costGbp}</div></div>`).join('');
 }
 function selectSkuForLine(id){
   state.selectedSkuForLine=state.skus.find(s=>s.id===id);const s=state.selectedSkuForLine;
@@ -566,7 +554,7 @@ async function addTransferLine(){
   const qty=parseInt(document.getElementById('lineQty').value);
   if(!qty||qty<1) return alert('Quantity must be at least 1');
   if(state.transferLines.find(l=>l.skuId===state.selectedSkuForLine.id)) return alert('This SKU is already on the transfer.');
-  if(!state.selectedSkuForLine.weightKg||state.selectedSkuForLine.weightKg<=0) return alert('Warning: this SKU has no weight set.');
+  if(!state.selectedSkuForLine.weightKg||state.selectedSkuForLine.weightKg<=0) return alert('This SKU has no weight set — transport and CBAM cannot be calculated.');
   state.transferLines.push({skuId:state.selectedSkuForLine.id,qty});
   closeModal('addLineModal'); await recalcTransfer();
 }
@@ -576,10 +564,31 @@ async function recalcTransfer(){
 }
 function renderTransferTable(lines=[],totals=null){
   const tbody=document.getElementById('transferLines'),totDiv=document.getElementById('transferTotals'),actDiv=document.getElementById('transferActions');
-  if(!lines.length){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text-muted)">No lines added yet — click <strong>+ Add Line</strong> to start</td></tr>';totDiv.style.display='none';if(actDiv)actDiv.style.display='none';return;}
-  tbody.innerHTML=lines.map(l=>`<tr><td class="td-mono">${l.variantCode}</td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.description}</td><td class="td-right">${l.qty}</td><td class="td-right">${l.weightKgTotal.toFixed(2)}</td><td class="td-right">£${l.landedCostGbp.toFixed(2)}</td><td class="td-right">€${l.landedCostEur.toFixed(2)}</td><td class="td-right">£${l.ukSellPrice.toFixed(2)}</td><td class="td-right">£${l.euSellPrice.toFixed(2)}</td><td class="td-right" style="color:var(--orange);font-weight:600">€${l.euSellPriceEur.toFixed(2)}</td><td class="td-right">${l.pctIncreaseVsUk>0?'+':''}${l.pctIncreaseVsUk}%</td><td><button class="btn btn-danger btn-sm" onclick="removeTransferLine('${l.variantCode}')">✕</button></td></tr>`).join('');
-  if(totals){totDiv.style.display='grid';document.getElementById('tot-weight').textContent=totals.totalWeightKg.toFixed(1)+' kg';document.getElementById('tot-landed-gbp').textContent='£'+totals.totalLandedCostGbp.toFixed(2);document.getElementById('tot-landed-eur').textContent='€'+totals.totalLandedCostEur.toFixed(2);document.getElementById('tot-uk-sell').textContent='£'+totals.totalUkSellValue.toFixed(2);document.getElementById('tot-eu-sell').textContent='£'+totals.totalEuSellValue.toFixed(2);document.getElementById('tot-eu-sell-eur').textContent='€'+totals.totalEuSellValueEur.toFixed(2);}
-  if(actDiv) actDiv.style.display='flex';
+  document.getElementById('transferLineCount').textContent=lines.length?`${lines.length} line${lines.length!==1?'s':''}`:'';
+  if(!lines.length){
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--muted);font-family:\'Barlow Condensed\',sans-serif;letter-spacing:0.05em">No lines added yet — click <strong>+ ADD LINE</strong> to start</td></tr>';
+    totDiv.style.display='none'; if(actDiv)actDiv.style.display='none'; return;
+  }
+  tbody.innerHTML=lines.map(l=>`<tr>
+    <td class="mono">${l.variantCode}</td>
+    <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.description}</td>
+    <td class="right">${l.qty}</td><td class="right">${l.weightKgTotal.toFixed(2)}</td>
+    <td class="right">£${l.landedCostGbp.toFixed(2)}</td><td class="right">€${l.landedCostEur.toFixed(2)}</td>
+    <td class="right">£${l.ukSellPrice.toFixed(2)}</td><td class="right">£${l.euSellPrice.toFixed(2)}</td>
+    <td class="right" style="color:var(--lime-dark);font-weight:600">€${l.euSellPriceEur.toFixed(2)}</td>
+    <td class="right">${l.pctIncreaseVsUk>0?'+':''}${l.pctIncreaseVsUk}%</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeTransferLine('${l.variantCode}')">✕</button></td>
+  </tr>`).join('');
+  if(totals){
+    totDiv.style.display='grid';
+    document.getElementById('tot-weight').textContent=totals.totalWeightKg.toFixed(1)+' kg';
+    document.getElementById('tot-landed-gbp').textContent='£'+totals.totalLandedCostGbp.toFixed(2);
+    document.getElementById('tot-landed-eur').textContent='€'+totals.totalLandedCostEur.toFixed(2);
+    document.getElementById('tot-uk-sell').textContent='£'+totals.totalUkSellValue.toFixed(2);
+    document.getElementById('tot-eu-sell').textContent='£'+totals.totalEuSellValue.toFixed(2);
+    document.getElementById('tot-eu-sell-eur').textContent='€'+totals.totalEuSellValueEur.toFixed(2);
+  }
+  if(actDiv)actDiv.style.display='flex';
 }
 window.removeTransferLine=async function(variantCode){const sku=state.skus.find(s=>s.variantCode===variantCode);if(sku)state.transferLines=state.transferLines.filter(l=>l.skuId!==sku.id);await recalcTransfer();};
 async function saveTransfer(status){
@@ -591,25 +600,51 @@ async function saveTransfer(status){
 }
 async function loadHistory(){
   const transfers=await api('/api/transfers'),body=document.getElementById('historyTableBody');
-  if(!transfers.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted)">No transfers saved yet</td></tr>';return;}
-  body.innerHTML=transfers.map(t=>`<tr><td class="td-mono">${t.refNum}</td><td>${t.name||'—'}</td><td><span class="pill ${t.status==='Confirmed'?'pill-confirmed':'pill-draft'}">${t.status}</span></td><td style="font-size:12px;color:var(--text-muted)">${t.createdBy}</td><td style="font-size:12px;color:var(--text-muted)">${fmtDate(t.createdAt)}</td><td class="td-right">${(t.lines||[]).length}</td><td class="td-right">${t.totals?.totalWeightKg?.toFixed(1)||'—'} kg</td><td class="td-right">£${t.totals?.totalLandedCostGbp?.toFixed(2)||'—'}</td><td class="td-right" style="color:var(--orange);font-weight:600">€${t.totals?.totalEuSellValueEur?.toFixed(2)||'—'}</td><td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="viewTransfer('${t.id}')">View</button> <button class="btn btn-secondary btn-sm" onclick="window.location='/api/transfers/${t.id}/export/xlsx'">↓ XLS</button> <button class="btn btn-secondary btn-sm" onclick="window.location='/api/transfers/${t.id}/export/csv'">↓ CSV</button></td></tr>`).join('');
+  if(!transfers.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--muted)">No transfers saved yet</td></tr>';return;}
+  body.innerHTML=transfers.map(t=>`<tr>
+    <td class="mono">${t.refNum}</td><td>${t.name||'—'}</td>
+    <td><span class="tag ${t.status==='Confirmed'?'tag-confirmed':'tag-draft'}">${t.status}</span></td>
+    <td style="font-size:11px;color:var(--muted)">${t.createdBy}</td>
+    <td style="font-size:11px;color:var(--muted)">${fmtDate(t.createdAt)}</td>
+    <td class="right">${(t.lines||[]).length}</td>
+    <td class="right">${t.totals?.totalWeightKg?.toFixed(1)||'—'} kg</td>
+    <td class="right">£${t.totals?.totalLandedCostGbp?.toFixed(2)||'—'}</td>
+    <td class="right" style="color:var(--lime-dark);font-weight:600">€${t.totals?.totalEuSellValueEur?.toFixed(2)||'—'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewTransfer('${t.id}')">View</button>
+      <button class="btn btn-outline btn-sm" onclick="window.location='/api/transfers/${t.id}/export/xlsx'">↓ XLS</button>
+      <button class="btn btn-outline btn-sm" onclick="window.location='/api/transfers/${t.id}/export/csv'">↓ CSV</button>
+    </td></tr>`).join('');
 }
 async function viewTransfer(id){
   const t=await api('/api/transfers/'+id);
   document.getElementById('transferViewTitle').innerHTML=`${t.refNum} — ${t.name||''} <button class="modal-close" onclick="closeModal('transferViewModal')">×</button>`;
-  document.getElementById('transferViewContent').innerHTML=`<div class="transfer-totals" style="margin-bottom:16px"><div class="total-item"><div class="total-label">Weight</div><div class="total-val">${t.totals.totalWeightKg} kg</div></div><div class="total-item"><div class="total-label">Landed £</div><div class="total-val">£${t.totals.totalLandedCostGbp}</div></div><div class="total-item"><div class="total-label">Landed €</div><div class="total-val">€${t.totals.totalLandedCostEur}</div></div><div class="total-item"><div class="total-label">EU Sell €</div><div class="total-val orange">€${t.totals.totalEuSellValueEur}</div></div><div class="total-item"><div class="total-label">FX Rate</div><div class="total-val" style="font-size:14px">${t.totals.fxRate}</div></div></div><div class="table-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Qty</th><th class="td-right">Weight kg</th><th class="td-right">Landed £</th><th class="td-right">Landed €</th><th class="td-right">EU Sell €</th></tr></thead><tbody>${(t.lines||[]).map(l=>`<tr><td class="td-mono">${l.variantCode}</td><td>${l.description}</td><td>${l.qty}</td><td class="td-right">${l.weightKgTotal}</td><td class="td-right">£${l.landedCostGbp}</td><td class="td-right">€${l.landedCostEur}</td><td class="td-right" style="color:var(--orange);font-weight:600">€${l.euSellPriceEur}</td></tr>`).join('')}</tbody></table></div>`;
-  document.getElementById('transferViewFooter').innerHTML=`<button class="btn btn-secondary" onclick="window.location='/api/transfers/${t.id}/export/xlsx'">↓ Excel</button><button class="btn btn-secondary" onclick="window.location='/api/transfers/${t.id}/export/csv'">↓ CSV</button>${t.status==='Draft'?`<button class="btn btn-primary" onclick="confirmTransfer('${t.id}')">✅ Confirm Transfer</button>`:''}<button class="btn btn-secondary" onclick="closeModal('transferViewModal')">Close</button>`;
+  document.getElementById('transferViewContent').innerHTML=`
+    <div class="totals-bar" style="margin-bottom:16px">
+      <div class="total-item"><span class="total-label">Weight</span><div class="total-val">${t.totals.totalWeightKg} kg</div></div>
+      <div class="total-item"><span class="total-label">Landed £</span><div class="total-val">£${t.totals.totalLandedCostGbp}</div></div>
+      <div class="total-item"><span class="total-label">Landed €</span><div class="total-val">€${t.totals.totalLandedCostEur}</div></div>
+      <div class="total-item"><span class="total-label">EU Sell €</span><div class="total-val lime">€${t.totals.totalEuSellValueEur}</div></div>
+      <div class="total-item"><span class="total-label">FX Rate</span><div class="total-val" style="font-size:13px">${t.totals.fxRate}</div></div>
+    </div>
+    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Code</th><th>Description</th><th>Qty</th><th class="right">Weight kg</th><th class="right">Landed £</th><th class="right">Landed €</th><th class="right">EU Sell €</th></tr></thead><tbody>${(t.lines||[]).map(l=>`<tr><td class="mono">${l.variantCode}</td><td>${l.description}</td><td>${l.qty}</td><td class="right">${l.weightKgTotal}</td><td class="right">£${l.landedCostGbp}</td><td class="right">€${l.landedCostEur}</td><td class="right" style="color:var(--lime-dark);font-weight:600">€${l.euSellPriceEur}</td></tr>`).join('')}</tbody></table></div>`;
+  document.getElementById('transferViewFooter').innerHTML=`
+    <button class="btn btn-outline" onclick="window.location='/api/transfers/${t.id}/export/xlsx'">↓ Excel</button>
+    <button class="btn btn-outline" onclick="window.location='/api/transfers/${t.id}/export/csv'">↓ CSV</button>
+    ${t.status==='Draft'?`<button class="btn btn-lime" onclick="confirmTransfer('${t.id}')">Confirm Transfer</button>`:''}
+    <button class="btn btn-outline" onclick="closeModal('transferViewModal')">Close</button>`;
   openModal('transferViewModal');
 }
 async function confirmTransfer(id){
   const ok=await confirm2('Confirm this transfer?','Status will be updated to Confirmed.');
   if(!ok) return; await api('/api/transfers/'+id,'PUT',{status:'Confirmed'}); closeModal('transferViewModal'); loadHistory();
 }
+
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function confirm2(title,msg){return new Promise(resolve=>{state.confirmCallback=resolve;document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMsg').textContent=msg;document.getElementById('confirmDialog').classList.add('open');});}
 function closeConfirm(result){document.getElementById('confirmDialog').classList.remove('open');if(state.confirmCallback){state.confirmCallback(result);state.confirmCallback=null;}}
-function clearFormErrors(modalId){document.querySelectorAll(`#${modalId} .has-error`).forEach(el=>el.classList.remove('has-error'));}
+function clearErrors(){document.querySelectorAll('.has-error').forEach(el=>el.classList.remove('has-error'));}
 function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function esc(s){return(s||'').replace(/'/g,"\\'");}
 document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
