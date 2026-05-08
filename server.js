@@ -2,7 +2,6 @@
 
 const express = require('express');
 const session = require('express-session');
-const FirebaseStore = require('connect-session-firebase')(session);
 const admin = require('firebase-admin');
 const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
@@ -21,9 +20,12 @@ admin.initializeApp({
 const db = admin.firestore();
 db.settings({ databaseId: 'landedcost' });
 
-// Sessions stored in Firestore — survives Cloud Run scale-to-zero
+// Firestore session store — sessions stored in 'sessions' collection
+// Survives Cloud Run scale-to-zero
+const FirestoreStore = require('firestore-store')(session);
+
 app.use(session({
-  store: new FirebaseStore({ database: admin.database() }),
+  store: new FirestoreStore({ database: db, collection: 'sessions' }),
   secret: process.env.SESSION_SECRET || 'fixmart-landed-cost-2026',
   resave: false,
   saveUninitialized: false,
