@@ -2,6 +2,7 @@
 
 const express = require('express');
 const session = require('express-session');
+const FirebaseStore = require('connect-session-firebase')(session);
 const admin = require('firebase-admin');
 const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
@@ -11,11 +12,23 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Firebase init first — session store needs it
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+  projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
+});
+const db = admin.firestore();
+db.settings({ databaseId: 'landedcost' });
+
+// Sessions stored in Firestore — survives Cloud Run scale-to-zero
 app.use(session({
+  store: new FirebaseStore({ database: admin.database() }),
   secret: process.env.SESSION_SECRET || 'fixmart-landed-cost-2026',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 8 * 60 * 60 * 1000 }
+  rolling: true,
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days, resets on every request
 }));
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -50,14 +63,6 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
-
-// ── Firebase — named database 'landedcost' ────────────────────────────────────
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
-});
-const db = admin.firestore();
-db.settings({ databaseId: 'landedcost' });
 
 // ── FX Rate — Google Cloud Billing API ───────────────────────────────────────
 let fxCache = { rate: 1.17, timestamp: null, source: 'default' };
