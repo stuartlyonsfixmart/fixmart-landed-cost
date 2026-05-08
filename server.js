@@ -18,14 +18,14 @@ admin.initializeApp({
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
 });
 const db = admin.firestore();
-db.settings({ databaseId: 'landedcost' });
+// Use default Firestore database (Native mode) — landedcost db was created in MongoDB compat mode
 
-// Firestore session store — sessions stored in 'sessions' collection
+// Firestore session store — sessions stored in 'landedcost-sessions' collection
 // Survives Cloud Run scale-to-zero
 const FirestoreStore = require('firestore-store')(session);
 
 app.use(session({
-  store: new FirestoreStore({ database: db, collection: 'sessions' }),
+  store: new FirestoreStore({ database: db, collection: 'landedcost-sessions' }),
   secret: process.env.SESSION_SECRET || 'fixmart-landed-cost-2026',
   resave: false,
   saveUninitialized: false,
@@ -90,67 +90,67 @@ app.get('/api/fx', async (req, res) => {
 
 // ── Assumptions ───────────────────────────────────────────────────────────────
 app.get('/api/assumptions', async (req, res) => {
-  const doc = await db.collection('config').doc('assumptions').get();
+  const doc = await db.collection('landedcost-config').doc('assumptions').get();
   if (!doc.exists) {
     const defaults = { transportRatePerKg: 1.0, cbamRateEurPerTonneCo2: 5.2, cbamEmissionsFactorTco2PerTonne: 74, defaultGrossMargin: 0.35, sourcingMarkupChina: 1.2 };
-    await db.collection('config').doc('assumptions').set({ ...defaults, updatedBy: 'system', updatedAt: new Date().toISOString() });
+    await db.collection('landedcost-config').doc('assumptions').set({ ...defaults, updatedBy: 'system', updatedAt: new Date().toISOString() });
     return res.json(defaults);
   }
   res.json(doc.data());
 });
 
 app.put('/api/assumptions', async (req, res) => {
-  const prev = await db.collection('config').doc('assumptions').get();
-  if (prev.exists) await db.collection('assumptionsLog').add({ ...prev.data(), loggedAt: new Date().toISOString() });
-  await db.collection('config').doc('assumptions').set({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
+  const prev = await db.collection('landedcost-config').doc('assumptions').get();
+  if (prev.exists) await db.collection('landedcost-assumptionsLog').add({ ...prev.data(), loggedAt: new Date().toISOString() });
+  await db.collection('landedcost-config').doc('assumptions').set({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
   res.json({ ok: true });
 });
 
 app.get('/api/assumptions/log', async (req, res) => {
-  const snap = await db.collection('assumptionsLog').orderBy('loggedAt', 'desc').limit(20).get();
+  const snap = await db.collection('landedcost-assumptionsLog').orderBy('loggedAt', 'desc').limit(20).get();
   res.json(snap.docs.map(d => d.data()));
 });
 
 // ── Duty Rates ────────────────────────────────────────────────────────────────
 app.get('/api/duty-rates', async (req, res) => {
-  const snap = await db.collection('dutyRates').get();
+  const snap = await db.collection('landedcost-dutyRates').get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
 
 app.post('/api/duty-rates', async (req, res) => {
   const { hsCode, countryOfOrigin, taricDutyRate, notes } = req.body;
   if (!hsCode || !countryOfOrigin || taricDutyRate === undefined) return res.status(400).json({ error: 'hsCode, countryOfOrigin and taricDutyRate are required' });
-  const ref = await db.collection('dutyRates').add({ hsCode, countryOfOrigin: countryOfOrigin.toUpperCase(), taricDutyRate: parseFloat(taricDutyRate), notes: notes || '', createdBy: req.session.user, createdAt: new Date().toISOString() });
+  const ref = await db.collection('landedcost-dutyRates').add({ hsCode, countryOfOrigin: countryOfOrigin.toUpperCase(), taricDutyRate: parseFloat(taricDutyRate), notes: notes || '', createdBy: req.session.user, createdAt: new Date().toISOString() });
   res.json({ id: ref.id });
 });
 
 app.put('/api/duty-rates/:id', async (req, res) => {
-  await db.collection('dutyRates').doc(req.params.id).update({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
+  await db.collection('landedcost-dutyRates').doc(req.params.id).update({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
   res.json({ ok: true });
 });
 
 app.delete('/api/duty-rates/:id', async (req, res) => {
-  await db.collection('dutyRates').doc(req.params.id).delete();
+  await db.collection('landedcost-dutyRates').doc(req.params.id).delete();
   res.json({ ok: true });
 });
 
 // ── SKUs ──────────────────────────────────────────────────────────────────────
 app.get('/api/skus', async (req, res) => {
-  const snap = await db.collection('skus').orderBy('variantCode').get();
+  const snap = await db.collection('landedcost-skus').orderBy('variantCode').get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
 
 app.post('/api/skus', async (req, res) => {
   const { variantCode, description, hsCode, countryOfOrigin, packQty, weightKg, costGbp, sourcingRate, ukMarginOverride, euMarginOverride } = req.body;
   if (!variantCode || !description || !countryOfOrigin || !weightKg || !costGbp) return res.status(400).json({ error: 'variantCode, description, countryOfOrigin, weightKg and costGbp are required' });
-  const existing = await db.collection('skus').where('variantCode', '==', variantCode).get();
+  const existing = await db.collection('landedcost-skus').where('variantCode', '==', variantCode).get();
   if (!existing.empty) return res.status(409).json({ error: 'Variant code already exists' });
   let dutyWarning = null;
   if (hsCode) {
-    const duty = await db.collection('dutyRates').where('hsCode', '==', hsCode).where('countryOfOrigin', '==', countryOfOrigin.toUpperCase()).get();
+    const duty = await db.collection('landedcost-dutyRates').where('hsCode', '==', hsCode).where('countryOfOrigin', '==', countryOfOrigin.toUpperCase()).get();
     if (duty.empty) dutyWarning = `No duty rate found for HS code ${hsCode} / ${countryOfOrigin} — landed cost will use 0% duty until added`;
   }
-  const ref = await db.collection('skus').add({ variantCode, description, hsCode: hsCode || '', countryOfOrigin: countryOfOrigin.toUpperCase(), packQty: parseInt(packQty) || 1, weightKg: parseFloat(weightKg), costGbp: parseFloat(costGbp), sourcingRate: parseFloat(sourcingRate) || 1.0, ukMarginOverride: ukMarginOverride ? parseFloat(ukMarginOverride) : null, euMarginOverride: euMarginOverride ? parseFloat(euMarginOverride) : null, createdBy: req.session.user, createdAt: new Date().toISOString() });
+  const ref = await db.collection('landedcost-skus').add({ variantCode, description, hsCode: hsCode || '', countryOfOrigin: countryOfOrigin.toUpperCase(), packQty: parseInt(packQty) || 1, weightKg: parseFloat(weightKg), costGbp: parseFloat(costGbp), sourcingRate: parseFloat(sourcingRate) || 1.0, ukMarginOverride: ukMarginOverride ? parseFloat(ukMarginOverride) : null, euMarginOverride: euMarginOverride ? parseFloat(euMarginOverride) : null, createdBy: req.session.user, createdAt: new Date().toISOString() });
   res.json({ id: ref.id, warning: dutyWarning });
 });
 
@@ -159,12 +159,12 @@ app.put('/api/skus/:id', async (req, res) => {
   if (data.weightKg) data.weightKg = parseFloat(data.weightKg);
   if (data.costGbp) data.costGbp = parseFloat(data.costGbp);
   if (data.sourcingRate) data.sourcingRate = parseFloat(data.sourcingRate);
-  await db.collection('skus').doc(req.params.id).update(data);
+  await db.collection('landedcost-skus').doc(req.params.id).update(data);
   res.json({ ok: true });
 });
 
 app.delete('/api/skus/:id', async (req, res) => {
-  await db.collection('skus').doc(req.params.id).delete();
+  await db.collection('landedcost-skus').doc(req.params.id).delete();
   res.json({ ok: true });
 });
 
@@ -173,7 +173,7 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
   const { transportRatePerKg, cbamRateEurPerTonneCo2, cbamEmissionsFactorTco2PerTonne, defaultGrossMargin } = assumptions;
   let taricRate = 0;
   if (sku.hsCode) {
-    const dutySnap = await db.collection('dutyRates').where('hsCode', '==', sku.hsCode).where('countryOfOrigin', '==', sku.countryOfOrigin).get();
+    const dutySnap = await db.collection('landedcost-dutyRates').where('hsCode', '==', sku.hsCode).where('countryOfOrigin', '==', sku.countryOfOrigin).get();
     if (!dutySnap.empty) taricRate = dutySnap.docs[0].data().taricDutyRate;
   }
   const euBaseCost = sku.costGbp * (sku.sourcingRate || 1.0);
@@ -205,12 +205,12 @@ function r(n, dp = 2) { return Math.round(n * Math.pow(10, dp)) / Math.pow(10, d
 
 // ── Transfers ─────────────────────────────────────────────────────────────────
 app.get('/api/transfers', async (req, res) => {
-  const snap = await db.collection('transfers').orderBy('createdAt', 'desc').limit(50).get();
+  const snap = await db.collection('landedcost-transfers').orderBy('createdAt', 'desc').limit(50).get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 });
 
 app.get('/api/transfers/:id', async (req, res) => {
-  const doc = await db.collection('transfers').doc(req.params.id).get();
+  const doc = await db.collection('landedcost-transfers').doc(req.params.id).get();
   if (!doc.exists) return res.status(404).json({ error: 'Not found' });
   res.json({ id: doc.id, ...doc.data() });
 });
@@ -220,12 +220,12 @@ const PORT = process.env.PORT || 8080;
 app.post('/api/transfers/calculate', async (req, res) => {
   const { lines } = req.body;
   if (!lines || !lines.length) return res.status(400).json({ error: 'No lines provided' });
-  const assumDoc = await db.collection('config').doc('assumptions').get();
+  const assumDoc = await db.collection('landedcost-config').doc('assumptions').get();
   const assumptions = assumDoc.exists ? assumDoc.data() : { transportRatePerKg: 1, cbamRateEurPerTonneCo2: 5.2, cbamEmissionsFactorTco2PerTonne: 74, defaultGrossMargin: 0.35 };
   const fxRate = fxCache.rate || 1.17;
   const results = [];
   for (const line of lines) {
-    const skuDoc = await db.collection('skus').doc(line.skuId).get();
+    const skuDoc = await db.collection('landedcost-skus').doc(line.skuId).get();
     if (!skuDoc.exists) continue;
     results.push(await calcLandedCost({ id: skuDoc.id, ...skuDoc.data() }, line.qty, assumptions, fxRate));
   }
@@ -236,17 +236,17 @@ app.post('/api/transfers/calculate', async (req, res) => {
 app.post('/api/transfers', async (req, res) => {
   const { name, lines, totals, status } = req.body;
   const refNum = 'TRF-' + Date.now().toString().slice(-6);
-  const ref = await db.collection('transfers').add({ refNum, name: name || refNum, lines, totals, status: status || 'Draft', createdBy: req.session.user, createdAt: new Date().toISOString() });
+  const ref = await db.collection('landedcost-transfers').add({ refNum, name: name || refNum, lines, totals, status: status || 'Draft', createdBy: req.session.user, createdAt: new Date().toISOString() });
   res.json({ id: ref.id, refNum });
 });
 
 app.put('/api/transfers/:id', async (req, res) => {
-  await db.collection('transfers').doc(req.params.id).update({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
+  await db.collection('landedcost-transfers').doc(req.params.id).update({ ...req.body, updatedBy: req.session.user, updatedAt: new Date().toISOString() });
   res.json({ ok: true });
 });
 
 app.get('/api/transfers/:id/export/:format', async (req, res) => {
-  const doc = await db.collection('transfers').doc(req.params.id).get();
+  const doc = await db.collection('landedcost-transfers').doc(req.params.id).get();
   if (!doc.exists) return res.status(404).json({ error: 'Not found' });
   const transfer = doc.data(); const fmt = req.params.format;
   const headers = ['Variant Code','Description','Qty','Weight/Unit kg','Total Weight kg','EU Base Cost £','TARIC Duty £','CBAM Cost £','Transport £','Landed Cost £','Landed Cost €','UK Sell Price £','EU Sell Price £','EU Sell Price €','% Inc vs UK','UK Margin %','EU Margin %'];
@@ -266,7 +266,7 @@ app.get('/api/transfers/:id/export/:format', async (req, res) => {
 });
 
 app.get('/api/skus/export/:format', async (req, res) => {
-  const snap = await db.collection('skus').orderBy('variantCode').get();
+  const snap = await db.collection('landedcost-skus').orderBy('variantCode').get();
   const skus = snap.docs.map(d => d.data());
   const headers = ['Variant Code','Description','HS Code','Country of Origin','Pack Qty','Weight kg','Cost GBP','Sourcing Rate','UK Margin Override','EU Margin Override'];
   const rows = skus.map(s => [s.variantCode, s.description, s.hsCode, s.countryOfOrigin, s.packQty, s.weightKg, s.costGbp, s.sourcingRate, s.ukMarginOverride??'', s.euMarginOverride??'']);
