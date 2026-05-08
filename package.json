@@ -10,7 +10,6 @@
     "axios": "^1.6.0",
     "xlsx": "^0.18.5",
     "express-session": "^1.17.3",
-    "google-auth-library": "^9.0.0",
-    "firestore-store": "^1.0.1"
+    "google-auth-library": "^9.0.0"
   }
 }
