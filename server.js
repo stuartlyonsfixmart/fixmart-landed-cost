@@ -4,7 +4,6 @@ const { OAuth2Client } = require('google-auth-library');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const XLSX = require('xlsx');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -16,13 +15,15 @@ app.use(session({
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
+// Firebase — connect to named database 'landedcost'
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
 });
-
 const db = admin.firestore();
+db.settings({ databaseId: 'landedcost' });
 
+// Google OAuth
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -60,23 +61,53 @@ app.get('/api/me', (req, res) => {
   else res.status(401).json({ error: 'Not logged in' });
 });
 
-let fxCache = { rate: 1.17, timestamp: null };
+// ── FX Rate — Google Cloud Currency Conversion API ───────────────────────────
+// Uses application default credentials, no separate API key needed.
+// Endpoint: https://cloud.google.com/skus/exchange-rates
+let fxCache = { rate: 1.17, timestamp: null, source: 'default' };
+
+async function getGoogleAccessToken() {
+  const auth = new (require('google-auth-library').GoogleAuth)({
+    scopes: ['https://www.googleapis.com/auth/cloud-platform']
+  });
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  return token.token;
+}
 
 app.get('/api/fx', requireAuth, async (req, res) => {
   const now = Date.now();
   if (fxCache.timestamp && now - fxCache.timestamp < 60 * 60 * 1000) return res.json(fxCache);
   try {
-    const apiKey = process.env.FX_API_KEY;
-    const url = apiKey
-      ? `https://v6.exchangerate-api.com/v6/${apiKey}/pair/GBP/EUR`
-      : `https://api.exchangerate-api.com/v4/latest/GBP`;
-    const resp = await axios.get(url, { timeout: 5000 });
-    const rate = apiKey ? resp.data.conversion_rate : resp.data.rates.EUR;
-    fxCache = { rate, timestamp: now, source: 'live' };
+    const accessToken = await getGoogleAccessToken();
+    // Google Cloud Billing exchange rates — returns rates relative to USD
+    const resp = await axios.get(
+      'https://cloudbilling.googleapis.com/v1beta/exchangeRates',
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 8000
+      }
+    );
+    // Rates are keyed by currency code, values are units per USD
+    const rates = resp.data.exchangeRates || resp.data.rates || {};
+    const gbpPerUsd = rates['GBP'] || rates.find?.(r => r.currencyCode === 'GBP')?.units;
+    const eurPerUsd = rates['EUR'] || rates.find?.(r => r.currencyCode === 'EUR')?.units;
+    if (gbpPerUsd && eurPerUsd) {
+      // GBP/EUR = (EUR per USD) / (GBP per USD)
+      const rate = parseFloat(eurPerUsd) / parseFloat(gbpPerUsd);
+      fxCache = { rate: Math.round(rate * 10000) / 10000, timestamp: now, source: 'live' };
+    } else {
+      fxCache.source = 'cached';
+    }
     res.json(fxCache);
-  } catch (e) { fxCache.source = 'cached'; res.json(fxCache); }
+  } catch (e) {
+    console.error('FX fetch error:', e.message);
+    fxCache.source = 'cached';
+    res.json(fxCache);
+  }
 });
 
+// ── Assumptions ───────────────────────────────────────────────────────────────
 app.get('/api/assumptions', requireAuth, async (req, res) => {
   const doc = await db.collection('config').doc('assumptions').get();
   if (!doc.exists) {
@@ -99,6 +130,7 @@ app.get('/api/assumptions/log', requireAuth, async (req, res) => {
   res.json(snap.docs.map(d => d.data()));
 });
 
+// ── Duty Rates ────────────────────────────────────────────────────────────────
 app.get('/api/duty-rates', requireAuth, async (req, res) => {
   const snap = await db.collection('dutyRates').get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -121,6 +153,7 @@ app.delete('/api/duty-rates/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── SKUs ──────────────────────────────────────────────────────────────────────
 app.get('/api/skus', requireAuth, async (req, res) => {
   const snap = await db.collection('skus').orderBy('variantCode').get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -154,6 +187,7 @@ app.delete('/api/skus/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Landed Cost Calculation ───────────────────────────────────────────────────
 async function calcLandedCost(sku, qty, assumptions, fxRate) {
   const { transportRatePerKg, cbamRateEurPerTonneCo2, cbamEmissionsFactorTco2PerTonne, defaultGrossMargin } = assumptions;
   let taricRate = 0;
@@ -191,6 +225,7 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
 
 function round(n, dp = 2) { return Math.round(n * Math.pow(10, dp)) / Math.pow(10, dp); }
 
+// ── Transfers ─────────────────────────────────────────────────────────────────
 app.get('/api/transfers', requireAuth, async (req, res) => {
   const snap = await db.collection('transfers').orderBy('createdAt', 'desc').limit(50).get();
   res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -255,7 +290,19 @@ app.get('/api/transfers/:id/export/:format', requireAuth, async (req, res) => {
     return res.send(csv);
   }
   const wb = XLSX.utils.book_new();
-  const summaryData = [['Fixmart – Intercompany Transfer Pro-Forma'],['Reference', transfer.refNum],['Name', transfer.name],['Status', transfer.status],['Created By', transfer.createdBy],['Created At', transfer.createdAt],['FX Rate (GBP/EUR)', transfer.totals.fxRate],[],['TOTALS'],['Total Weight (kg)', transfer.totals.totalWeightKg],['Total Landed Cost (£)', transfer.totals.totalLandedCostGbp],['Total Landed Cost (€)', transfer.totals.totalLandedCostEur],['Total UK Sell Value (£)', transfer.totals.totalUkSellValue],['Total EU Sell Value (£)', transfer.totals.totalEuSellValue],['Total EU Sell Value (€)', transfer.totals.totalEuSellValueEur]];
+  const summaryData = [
+    ['Fixmart – Intercompany Transfer Pro-Forma'],
+    ['Reference', transfer.refNum], ['Name', transfer.name], ['Status', transfer.status],
+    ['Created By', transfer.createdBy], ['Created At', transfer.createdAt],
+    ['FX Rate (GBP/EUR)', transfer.totals.fxRate], [],
+    ['TOTALS'],
+    ['Total Weight (kg)', transfer.totals.totalWeightKg],
+    ['Total Landed Cost (£)', transfer.totals.totalLandedCostGbp],
+    ['Total Landed Cost (€)', transfer.totals.totalLandedCostEur],
+    ['Total UK Sell Value (£)', transfer.totals.totalUkSellValue],
+    ['Total EU Sell Value (£)', transfer.totals.totalEuSellValue],
+    ['Total EU Sell Value (€)', transfer.totals.totalEuSellValueEur],
+  ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), 'Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers, ...rows]), 'Transfer Lines');
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
