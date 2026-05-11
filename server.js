@@ -4,7 +4,6 @@ const express = require('express');
 const session = require('express-session');
 const admin = require('firebase-admin');
 const axios = require('axios');
-const { GoogleAuth } = require('google-auth-library');
 const XLSX = require('xlsx');
 const path = require('path');
 
@@ -66,26 +65,26 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── FX Rate ───────────────────────────────────────────────────────────────────
+// ── FX Rate — Frankfurter (ECB daily rates, no API key needed) ────────────────
 let fxCache = { rate: 1.17, timestamp: null, source: 'default' };
 
 app.get('/api/fx', async (req, res) => {
   const now = Date.now();
   if (fxCache.timestamp && now - fxCache.timestamp < 60 * 60 * 1000) return res.json(fxCache);
   try {
-    const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
-    const client = await auth.getClient();
-    const token = await client.getAccessToken();
-    const resp = await axios.get('https://cloudbilling.googleapis.com/v1beta/exchangeRates', {
-      headers: { Authorization: `Bearer ${token.token}` }, timeout: 8000
-    });
-    const rates = resp.data.exchangeRates || resp.data.rates || {};
-    const find = (code) => rates[code] || (Array.isArray(rates) && rates.find(r => r.currencyCode === code)?.units);
-    const gbp = parseFloat(find('GBP')); const eur = parseFloat(find('EUR'));
-    if (gbp && eur) fxCache = { rate: Math.round(eur / gbp * 10000) / 10000, timestamp: now, source: 'live' };
-    else fxCache.source = 'cached';
+    const resp = await axios.get('https://api.frankfurter.app/latest?from=GBP&to=EUR', { timeout: 8000 });
+    const rate = resp.data?.rates?.EUR;
+    if (rate) {
+      fxCache = { rate: Math.round(rate * 10000) / 10000, timestamp: now, source: 'live' };
+    } else {
+      fxCache.source = 'cached';
+    }
     res.json(fxCache);
-  } catch (e) { console.error('FX error:', e.message); fxCache.source = 'cached'; res.json(fxCache); }
+  } catch (e) {
+    console.error('FX error:', e.message);
+    fxCache.source = 'cached';
+    res.json(fxCache);
+  }
 });
 
 // ── Assumptions ───────────────────────────────────────────────────────────────
@@ -237,7 +236,7 @@ app.post('/api/transfers', async (req, res) => {
   const { name, lines, totals, status } = req.body;
   const refNum = 'TRF-' + Date.now().toString().slice(-6);
   const ref = await db.collection('landedcost-transfers').add({ refNum, name: name || refNum, lines, totals, status: status || 'Draft', createdBy: req.session.user, createdAt: new Date().toISOString() });
-  res.json({ id: ref.id, refNum });
+  res.json({ id: ref.id, refNum, name: name || refNum });
 });
 
 app.put('/api/transfers/:id', async (req, res) => {
