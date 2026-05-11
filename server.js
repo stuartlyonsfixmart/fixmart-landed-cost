@@ -12,16 +12,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Firebase init first — session store needs it
+// Firebase init — project is project-aa7ee149-5e29-4eb4-8bc
+// Firestore database is named 'landedcost' (not default)
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
-  projectId: process.env.GOOGLE_CLOUD_PROJECT || 'fixmart-bi'
+  projectId: process.env.GOOGLE_CLOUD_PROJECT || 'project-aa7ee149-5e29-4eb4-8bc'
 });
 const db = admin.firestore();
-// Use default Firestore database (Native mode) — landedcost db was created in MongoDB compat mode
+db.settings({ databaseId: 'landedcost' });
 
 // Firestore session store — sessions stored in 'landedcost-sessions' collection
-// Survives Cloud Run scale-to-zero
 const FirestoreStore = require('firestore-store')(session);
 
 app.use(session({
@@ -30,7 +30,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   rolling: true,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days, resets on every request
+  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
 }));
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── FX Rate — Google Cloud Billing API ───────────────────────────────────────
+// ── FX Rate ───────────────────────────────────────────────────────────────────
 let fxCache = { rate: 1.17, timestamp: null, source: 'default' };
 
 app.get('/api/fx', async (req, res) => {
