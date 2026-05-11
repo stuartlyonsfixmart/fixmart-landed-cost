@@ -1,23 +1,18 @@
 // Fixmart Landed Cost — Firestore Seed Script
 // Seeds 67 SKUs, 17 duty rates, and default assumptions from Karl's original spreadsheet.
 //
-// Usage (from Cloud Shell or local with gcloud auth):
-//   npm install firebase-admin
+// Usage (from Cloud Shell):
 //   node seed.js
-//
-// Auth: uses application default credentials
-//   Cloud Shell: works automatically
-//   Local: run 'gcloud auth application-default login' first
 
 const admin = require('firebase-admin');
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
-  projectId: 'fixmart-bi'
+  projectId: 'project-aa7ee149-5e29-4eb4-8bc'
 });
 
 const db = admin.firestore();
-db.settings({ databaseId: 'landedcost' });
+db.settings({ databaseId: 'landedcost-native' });
 
 const SKUS = [
   { variantCode: "101220923", description: "*HDG H.T. Hex Bolt M24 X 120*", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 40.0, costGbp: 84.11, sourcingRate: 1.2 },
@@ -54,7 +49,7 @@ const SKUS = [
   { variantCode: "401417353", description: "HDG H.T. Hex Bolts  M20 X 100*", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 3.0, costGbp: 43.95, sourcingRate: 1.2 },
   { variantCode: "401417497", description: "* M20 x 75mm Hex Head HT Gr8.8 HDG Bolt*", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 2.36, costGbp: 40.4, sourcingRate: 1.2 },
   { variantCode: "401502841", description: "HDG Hex Set Screws  M10 X 25", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 2.54, costGbp: 3.97, sourcingRate: 1.2 },
-  { variantCode: "401502842", description: "HDG Hex Set Screws  M10 X 30 (new code - 401519280)", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 2.74, costGbp: 4.25, sourcingRate: 1.2 },
+  { variantCode: "401502842", description: "HDG Hex Set Screws  M10 X 30", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 2.74, costGbp: 4.25, sourcingRate: 1.2 },
   { variantCode: "401502843", description: "HDG Hex Set Screws  M10 X 40", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 3.0, costGbp: 4.48, sourcingRate: 1.2 },
   { variantCode: "401506468", description: "HDG Hex Set Screws  M12 X 60 *", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 5.0, costGbp: 11.8, sourcingRate: 1.2 },
   { variantCode: "401506473", description: "HDG Hex Set Screws  M16 x 40*", hsCode: "7318158290", countryOfOrigin: "CHINA", packQty: 100, weightKg: 7.94, costGbp: 12.01, sourcingRate: 1.2 },
@@ -90,7 +85,7 @@ const SKUS = [
 ];
 
 const DUTY_RATES = [
-  { hsCode: "7318158290", countryOfOrigin: "CHINA", taricDutyRate: 0.037, notes: "Hex bolts / set screws — standard TARIC. Note: 86.5% anti-dumping also applies — treated as separate policy decision, not modelled here." },
+  { hsCode: "7318158290", countryOfOrigin: "CHINA", taricDutyRate: 0.037, notes: "Hex bolts / set screws — standard TARIC." },
   { hsCode: "7318158290", countryOfOrigin: "INDIA", taricDutyRate: 0.037, notes: "Hex bolts from India — standard TARIC, no anti-dumping." },
   { hsCode: "7318158290", countryOfOrigin: "UK MANUFACTURED", taricDutyRate: 0, notes: "UK origin — zero duty under UK-EU TCA." },
   { hsCode: "7318169290", countryOfOrigin: "CHINA", taricDutyRate: 0.037, notes: "Hex nuts — standard TARIC." },
@@ -100,11 +95,11 @@ const DUTY_RATES = [
   { hsCode: "7318190090", countryOfOrigin: "CHINA", taricDutyRate: 0.037, notes: "Studding / threaded rod — TARIC." },
   { hsCode: "7318220098", countryOfOrigin: "CHINA", taricDutyRate: 0.037, notes: "Plain washers — TARIC." },
   { hsCode: "7318220098", countryOfOrigin: "INDIA", taricDutyRate: 0.037, notes: "Plain washers — India." },
-  { hsCode: "7308909890", countryOfOrigin: "INDIA", taricDutyRate: 0, notes: "Channel brackets / steel fabrications — India, currently 0% (verify)." },
-  { hsCode: "7308909890", countryOfOrigin: "UK SUPPLIER", taricDutyRate: 0, notes: "UK supplied steel items — 0% entered pending confirmation of actual origin." },
+  { hsCode: "7308909890", countryOfOrigin: "INDIA", taricDutyRate: 0, notes: "Channel brackets — India, 0%." },
+  { hsCode: "7308909890", countryOfOrigin: "UK SUPPLIER", taricDutyRate: 0, notes: "UK supplied steel items — 0%." },
   { hsCode: "7326909890", countryOfOrigin: "CHINA", taricDutyRate: 0.027, notes: "Misc steel articles — TARIC." },
-  { hsCode: "7326909890", countryOfOrigin: "CZECH REPUBLIC", taricDutyRate: 0.027, notes: "Walraven clips — EU origin goods imported into DE." },
-  { hsCode: "3923509000", countryOfOrigin: "UK MANUFACTURED", taricDutyRate: 0.065, notes: "Plastic fittings / end caps — UK origin, 6.5% TARIC." },
+  { hsCode: "7326909890", countryOfOrigin: "CZECH REPUBLIC", taricDutyRate: 0.027, notes: "Walraven clips — EU origin." },
+  { hsCode: "3923509000", countryOfOrigin: "UK MANUFACTURED", taricDutyRate: 0.065, notes: "Plastic fittings — UK origin, 6.5% TARIC." },
   { hsCode: "3923509000", countryOfOrigin: "UK SUPPLIER", taricDutyRate: 0.065, notes: "Plastic caps via UK distributor — 6.5% TARIC." },
 ];
 
@@ -121,19 +116,19 @@ const ASSUMPTIONS = {
 async function seed() {
   console.log('Starting Firestore seed...\n');
 
-  await db.collection('config').doc('assumptions').set(ASSUMPTIONS);
+  await db.collection('landedcost-config').doc('assumptions').set(ASSUMPTIONS);
   console.log('✓ Assumptions written');
 
   let dutyCount = 0;
   for (const rate of DUTY_RATES) {
-    await db.collection('dutyRates').add({ ...rate, createdBy: 'seed', createdAt: new Date().toISOString() });
+    await db.collection('landedcost-dutyRates').add({ ...rate, createdBy: 'seed', createdAt: new Date().toISOString() });
     dutyCount++;
   }
   console.log(`✓ ${dutyCount} duty rates written`);
 
   let skuCount = 0;
   for (const sku of SKUS) {
-    await db.collection('skus').add({ ...sku, ukMarginOverride: null, euMarginOverride: null, createdBy: 'seed', createdAt: new Date().toISOString() });
+    await db.collection('landedcost-skus').add({ ...sku, ukMarginOverride: null, euMarginOverride: null, createdBy: 'seed', createdAt: new Date().toISOString() });
     skuCount++;
     if (skuCount % 10 === 0) console.log(`  ${skuCount}/${SKUS.length} SKUs written...`);
   }
