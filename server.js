@@ -13,13 +13,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Firebase init — project is project-aa7ee149-5e29-4eb4-8bc
-// Firestore database is named 'landedcost' (not default)
+// Firestore database: landedcost-native (Native mode — landedcost db was MongoDB compat)
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'project-aa7ee149-5e29-4eb4-8bc'
 });
 const db = admin.firestore();
-db.settings({ databaseId: 'landedcost' });
+db.settings({ databaseId: 'landedcost-native' });
 
 // Firestore session store — sessions stored in 'landedcost-sessions' collection
 const FirestoreStore = require('firestore-store')(session);
