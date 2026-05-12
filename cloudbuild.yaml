@@ -1,0 +1,29 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west2-docker.pkg.dev/fixmart-bi/fixmart-bi/fixmart-landed-cost:$COMMIT_SHA'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'europe-west2-docker.pkg.dev/fixmart-bi/fixmart-bi/fixmart-landed-cost:$COMMIT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'fixmart-landed-cost'
+      - '--image'
+      - 'europe-west2-docker.pkg.dev/fixmart-bi/fixmart-bi/fixmart-landed-cost:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west2'
+      - '--platform'
+      - 'managed'
+      - '--quiet'
+
+images:
+  - 'europe-west2-docker.pkg.dev/fixmart-bi/fixmart-bi/fixmart-landed-cost:$COMMIT_SHA'
