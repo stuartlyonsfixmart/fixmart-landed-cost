@@ -11,8 +11,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Firebase init — project is project-aa7ee149-5e29-4eb4-8bc
-// Firestore database: landedcost-native (Native mode — landedcost db was MongoDB compat)
+// Firebase init
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'project-aa7ee149-5e29-4eb4-8bc'
@@ -20,7 +19,6 @@ admin.initializeApp({
 const db = admin.firestore();
 db.settings({ databaseId: 'landedcost-native' });
 
-// Firestore session store — sessions stored in 'landedcost-sessions' collection
 const FirestoreStore = require('firestore-store')(session);
 
 app.use(session({
@@ -65,7 +63,7 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── FX Rate — Frankfurter (ECB daily rates, no API key needed) ────────────────
+// ── FX Rate ───────────────────────────────────────────────────────────────────
 let fxCache = { rate: 1.17, timestamp: null, source: 'default' };
 
 app.get('/api/fx', async (req, res) => {
@@ -168,6 +166,15 @@ app.delete('/api/skus/:id', async (req, res) => {
 });
 
 // ── Landed Cost Calculation ───────────────────────────────────────────────────
+// Logic verified against Fixmart_Landed_Cost_v3_1.xlsx (all 67 SKUs match):
+//   EU Base Cost  = costGbp x sourcingRate                        (per pack)
+//   TARIC Duty    = euBaseCost x taricRate                        (per pack)
+//   CBAM Cost     = (weightKg/1000) x cbamEmissionsFactor x cbamRateEur
+//                   Applied directly as GBP — no FX conversion (matches Karl's spreadsheet)
+//   Transport     = weightKg x transportRatePerKg                 (total weight)
+//   Landed Cost £ = (euBaseCost + taricDuty) x qty + cbamTotal + transportTotal
+//   UK Sell       = costGbp x qty / (1 - ukMargin)
+//   EU Sell £     = landedCostGbp / (1 - euMargin)
 async function calcLandedCost(sku, qty, assumptions, fxRate) {
   const { transportRatePerKg, cbamRateEurPerTonneCo2, cbamEmissionsFactorTco2PerTonne, defaultGrossMargin } = assumptions;
   let taricRate = 0;
@@ -175,19 +182,19 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
     const dutySnap = await db.collection('landedcost-dutyRates').where('hsCode', '==', sku.hsCode).where('countryOfOrigin', '==', sku.countryOfOrigin).get();
     if (!dutySnap.empty) taricRate = dutySnap.docs[0].data().taricDutyRate;
   }
-  // Per-pack costs (will be multiplied by qty)
+
+  // Per-pack costs (multiplied by qty below)
   const euBaseCostPerPack = sku.costGbp * (sku.sourcingRate || 1.0);
   const taricDutyPerPack = euBaseCostPerPack * taricRate;
 
-  // Total weight — already accounts for qty
+  // Weight-based totals (weightKgTotal already includes qty)
   const weightKgTotal = sku.weightKg * qty;
+  // CBAM: no FX conversion — rate applied directly as GBP, matching Karl's spreadsheet
+  const cbamCostTotal = (weightKgTotal / 1000) * cbamEmissionsFactorTco2PerTonne * cbamRateEurPerTonneCo2;
+  const transportTotal = weightKgTotal * transportRatePerKg;
 
-  // CBAM and transport are total costs (based on total weight, already qty-scaled)
-  const cbamCostGbpTotal = (weightKgTotal / 1000) * cbamEmissionsFactorTco2PerTonne * cbamRateEurPerTonneCo2 / fxRate;
-  const transportGbpTotal = weightKgTotal * transportRatePerKg;
-
-  // Landed cost: per-pack costs × qty, plus total weight-based costs
-  const landedCostGbp = (euBaseCostPerPack + taricDutyPerPack) * qty + cbamCostGbpTotal + transportGbpTotal;
+  // Landed cost: per-pack costs x qty, plus weight-based totals
+  const landedCostGbp = (euBaseCostPerPack + taricDutyPerPack) * qty + cbamCostTotal + transportTotal;
   const landedCostEur = landedCostGbp * fxRate;
 
   const ukMargin = sku.ukMarginOverride ?? defaultGrossMargin;
@@ -201,7 +208,7 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
     variantCode: sku.variantCode, description: sku.description, qty,
     weightKgUnit: sku.weightKg, weightKgTotal,
     euBaseCost: r(euBaseCostPerPack), taricDutyGbp: r(taricDutyPerPack * qty), taricRate,
-    cbamCostGbp: r(cbamCostGbpTotal), transportGbp: r(transportGbpTotal),
+    cbamCostGbp: r(cbamCostTotal), transportGbp: r(transportTotal),
     landedCostGbp: r(landedCostGbp), landedCostEur: r(landedCostEur),
     ukSellPrice: r(ukSellPrice), euSellPrice: r(euSellPrice), euSellPriceEur: r(euSellPriceEur),
     pctIncreaseVsUk: r(pctIncreaseVsUk * 100, 2),
