@@ -11,7 +11,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Firebase init
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   projectId: process.env.GOOGLE_CLOUD_PROJECT || 'project-aa7ee149-5e29-4eb4-8bc'
@@ -166,13 +165,19 @@ app.delete('/api/skus/:id', async (req, res) => {
 });
 
 // ── Landed Cost Calculation ───────────────────────────────────────────────────
-// Logic verified against Fixmart_Landed_Cost_v3_1.xlsx (all 67 SKUs match):
+// CBAM is an EU charge denominated in EUR.
+// Correct treatment: calculate the EUR charge, then convert to GBP by dividing by FX rate.
+//   CBAM EUR = (weightKg / 1000) x cbamEmissionsFactor x cbamRateEur
+//   CBAM GBP = CBAM EUR / fxRate
+// Karl's original spreadsheet skipped the FX conversion (overstated by ~17% at 1.17 rate).
+// This has been corrected here.
+//
+// Full calculation:
 //   EU Base Cost  = costGbp x sourcingRate                        (per pack)
 //   TARIC Duty    = euBaseCost x taricRate                        (per pack)
-//   CBAM Cost     = (weightKg/1000) x cbamEmissionsFactor x cbamRateEur
-//                   Applied directly as GBP — no FX conversion (matches Karl's spreadsheet)
-//   Transport     = weightKg x transportRatePerKg                 (total weight)
-//   Landed Cost £ = (euBaseCost + taricDuty) x qty + cbamTotal + transportTotal
+//   CBAM GBP      = (weightKg/1000) x cbamEmissionsFactor x cbamRateEur / fxRate
+//   Transport     = weightKg x transportRatePerKg
+//   Landed Cost £ = (euBaseCost + taricDuty) x qty + cbamGbp + transport
 //   UK Sell       = costGbp x qty / (1 - ukMargin)
 //   EU Sell £     = landedCostGbp / (1 - euMargin)
 async function calcLandedCost(sku, qty, assumptions, fxRate) {
@@ -189,12 +194,15 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
 
   // Weight-based totals (weightKgTotal already includes qty)
   const weightKgTotal = sku.weightKg * qty;
-  // CBAM: no FX conversion — rate applied directly as GBP, matching Karl's spreadsheet
-  const cbamCostTotal = (weightKgTotal / 1000) * cbamEmissionsFactorTco2PerTonne * cbamRateEurPerTonneCo2;
+
+  // CBAM: EU charge in EUR, converted to GBP via FX rate
+  const cbamEur = (weightKgTotal / 1000) * cbamEmissionsFactorTco2PerTonne * cbamRateEurPerTonneCo2;
+  const cbamGbp = cbamEur / fxRate;
+
   const transportTotal = weightKgTotal * transportRatePerKg;
 
   // Landed cost: per-pack costs x qty, plus weight-based totals
-  const landedCostGbp = (euBaseCostPerPack + taricDutyPerPack) * qty + cbamCostTotal + transportTotal;
+  const landedCostGbp = (euBaseCostPerPack + taricDutyPerPack) * qty + cbamGbp + transportTotal;
   const landedCostEur = landedCostGbp * fxRate;
 
   const ukMargin = sku.ukMarginOverride ?? defaultGrossMargin;
@@ -208,7 +216,7 @@ async function calcLandedCost(sku, qty, assumptions, fxRate) {
     variantCode: sku.variantCode, description: sku.description, qty,
     weightKgUnit: sku.weightKg, weightKgTotal,
     euBaseCost: r(euBaseCostPerPack), taricDutyGbp: r(taricDutyPerPack * qty), taricRate,
-    cbamCostGbp: r(cbamCostTotal), transportGbp: r(transportTotal),
+    cbamEur: r(cbamEur), cbamCostGbp: r(cbamGbp), transportGbp: r(transportTotal),
     landedCostGbp: r(landedCostGbp), landedCostEur: r(landedCostEur),
     ukSellPrice: r(ukSellPrice), euSellPrice: r(euSellPrice), euSellPriceEur: r(euSellPriceEur),
     pctIncreaseVsUk: r(pctIncreaseVsUk * 100, 2),
@@ -264,8 +272,8 @@ app.get('/api/transfers/:id/export/:format', async (req, res) => {
   const doc = await db.collection('landedcost-transfers').doc(req.params.id).get();
   if (!doc.exists) return res.status(404).json({ error: 'Not found' });
   const transfer = doc.data(); const fmt = req.params.format;
-  const headers = ['Variant Code','Description','Qty','Weight/Unit kg','Total Weight kg','EU Base Cost £','TARIC Duty £','CBAM Cost £','Transport £','Landed Cost £','Landed Cost €','UK Sell Price £','EU Sell Price £','EU Sell Price €','% Inc vs UK','UK Margin %','EU Margin %'];
-  const rows = transfer.lines.map(l => [l.variantCode, l.description, l.qty, l.weightKgUnit, l.weightKgTotal, l.euBaseCost, l.taricDutyGbp, l.cbamCostGbp, l.transportGbp, l.landedCostGbp, l.landedCostEur, l.ukSellPrice, l.euSellPrice, l.euSellPriceEur, l.pctIncreaseVsUk+'%', l.ukMargin+'%', l.euMargin+'%']);
+  const headers = ['Variant Code','Description','Qty','Weight/Unit kg','Total Weight kg','EU Base Cost £','TARIC Duty £','CBAM Cost €','CBAM Cost £','Transport £','Landed Cost £','Landed Cost €','UK Sell Price £','EU Sell Price £','EU Sell Price €','% Inc vs UK','UK Margin %','EU Margin %'];
+  const rows = transfer.lines.map(l => [l.variantCode, l.description, l.qty, l.weightKgUnit, l.weightKgTotal, l.euBaseCost, l.taricDutyGbp, l.cbamEur, l.cbamCostGbp, l.transportGbp, l.landedCostGbp, l.landedCostEur, l.ukSellPrice, l.euSellPrice, l.euSellPriceEur, l.pctIncreaseVsUk+'%', l.ukMargin+'%', l.euMargin+'%']);
   if (fmt === 'csv') {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${transfer.refNum}.csv"`);
